@@ -1,72 +1,75 @@
-package generator.domain;
+package com.yupi.yupicturebackend.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
+import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
 /**
- * 鐢ㄦ埛
+ * 用户
  * @TableName user
  */
 @TableName(value ="user")
 @Data
-public class User {
+public class User implements Serializable {
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
-     * 璐﹀彿
+     * 账号
      */
     private String userAccount;
 
     /**
-     * 瀵嗙爜
+     * 密码
      */
     private String userPassword;
 
     /**
-     * 鐢ㄦ埛鏄电О
+     * 用户昵称
      */
     private String userName;
 
     /**
-     * 鐢ㄦ埛澶村儚
+     * 用户头像
      */
     private String userAvatar;
 
     /**
-     * 鐢ㄦ埛绠�浠�
+     * 用户简介
      */
     private String userProfile;
 
     /**
-     * 鐢ㄦ埛瑙掕壊锛歶ser/admin
+     * 用户角色：user/admin
      */
     private String userRole;
 
     /**
-     * 缂栬緫鏃堕棿
+     * 编辑时间
      */
     private Date editTime;
 
     /**
-     * 鍒涘缓鏃堕棿
+     * 创建时间
      */
     private Date createTime;
 
     /**
-     * 鏇存柊鏃堕棿
+     * 更新时间
      */
     private Date updateTime;
 
     /**
-     * 鏄惁鍒犻櫎
+     * 是否删除
      */
+    @TableLogic
     private Integer isDelete;
+
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
 }
