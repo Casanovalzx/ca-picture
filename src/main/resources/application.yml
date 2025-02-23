@@ -4,13 +4,17 @@ server:
     context-path: /api
 spring:
   application:
-    name: yu-picture-backend
+    name: ca-picture-backend
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/yu_picture
     username: root
     password: 123456
+  # 开放更大的文件上传体积
+  servlet:
+    multipart:
+      max-file-size: 10MB
 mybatis-plus:
   configuration:
     # MyBatis 配置
@@ -32,7 +36,7 @@ knife4j:
       default:
         api-rule: package
         api-rule-resources:
-          - com.yupi.yupicturebackend.controller
+          - com.ca.capicturebackend.controller
 ## 对象存储配置（需要从腾讯云获取）
 #cos:
 #  client:
