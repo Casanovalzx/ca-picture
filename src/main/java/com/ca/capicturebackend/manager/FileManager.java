@@ -4,29 +4,26 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.ca.capicturebackend.common.ResultUtils;
 import com.ca.capicturebackend.config.CosClientConfig;
 import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
 import com.ca.capicturebackend.model.dto.file.UploadPictureResult;
 import com.qcloud.cos.model.PutObjectResult;
-import com.qcloud.cos.model.UploadResult;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
-import com.qcloud.cos.model.ciModel.persistence.OriginalInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 @Service
 @Slf4j
+@Deprecated
 public class FileManager {
 
     @Resource
