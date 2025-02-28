@@ -4,13 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ca.capicturebackend.model.dto.picture.PictureQueryRequest;
 import com.ca.capicturebackend.model.dto.picture.PictureReviewRequest;
+import com.ca.capicturebackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.ca.capicturebackend.model.dto.picture.PictureUploadRequest;
-import com.ca.capicturebackend.model.dto.user.UserQueryRequest;
 import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -31,7 +30,7 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      *
-     * @param inputSource 文件输入源
+     * @param inputSource          文件输入源
      * @param pictureUploadRequest
      * @param loginUser
      * @return
@@ -59,6 +58,14 @@ public interface PictureService extends IService<Picture> {
     Page<PictureVO> getPictureVOPage(Page<Picture> picturePage, HttpServletRequest request);
 
     /**
+     * 获取图片包装类（分页，有缓存）
+     * @param request
+     * @param servletRequest
+     * @return
+     */
+    Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest request, HttpServletRequest servletRequest);
+
+    /**
      * 获取查询条件
      *
      * @param pictureQueryRequest
@@ -81,4 +88,14 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 批量抓取和创建图片
+     *
+     * @param pictureUploadByBatchRequest
+     * @param loginUser
+     * @return 成功抓取的图片数
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                 User loginUser);
 }

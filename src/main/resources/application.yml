@@ -11,10 +11,19 @@ spring:
     url: jdbc:mysql://localhost:3306/yu_picture
     username: root
     password: 123456
+  # Redis 配置
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
   # 开放更大的文件上传体积
   servlet:
     multipart:
       max-file-size: 10MB
+  # 本地配置文件
+  profiles:
+    active: local
 mybatis-plus:
   configuration:
     # MyBatis 配置
