@@ -27,6 +27,7 @@ create table if not exists picture
 (
     id           bigint auto_increment comment 'id' primary key,
     url          varchar(512)                       not null comment '图片 url',
+    originalUrl  varchar(512)                       not null comment '原始图片 url',
     name         varchar(128)                       not null comment '图片名称',
     introduction varchar(512)                       null comment '简介',
     category     varchar(64)                        null comment '分类',
@@ -52,4 +53,3 @@ create table if not exists picture
     INDEX idx_userId (userId),             -- 提升基于用户 ID 的查询性能
     INDEX idx_reviewStatus (reviewStatus)  -- 提升基于盛和状态的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
-

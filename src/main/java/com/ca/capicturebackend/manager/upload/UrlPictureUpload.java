@@ -49,7 +49,7 @@ public class UrlPictureUpload extends PictureUploadTemplate {
             // 不为空才校验是否合法，这样校验规则相对宽松
             if (!StrUtil.isEmpty(contentType)) {
                 // 允许上传的文件后缀
-                final List<String> ALLOW_FORMAT_LIST = Arrays.asList("image/jpeg", "image/png", "image/gif", "image/jpg", "image/webp");
+                final List<String> ALLOW_FORMAT_LIST = Arrays.asList("image/jpeg", "image/png", "image/jpg", "image/webp");
                 ThrowUtils.throwIf(!ALLOW_FORMAT_LIST.contains(contentType.toLowerCase()),
                         ErrorCode.PARAMS_ERROR, "不支持的文件格式");
             }
