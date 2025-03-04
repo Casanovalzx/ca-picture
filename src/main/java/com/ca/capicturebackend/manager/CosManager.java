@@ -2,10 +2,10 @@ package com.ca.capicturebackend.manager;
 
 import cn.hutool.core.io.FileUtil;
 import com.qcloud.cos.COSClient;
-import com.qcloud.cos.model.COSObject;
-import com.qcloud.cos.model.GetObjectRequest;
-import com.qcloud.cos.model.PutObjectRequest;
-import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.exception.CosClientException;
+import com.qcloud.cos.exception.CosServiceException;
+import com.qcloud.cos.exception.MultiObjectDeleteException;
+import com.qcloud.cos.model.*;
 import com.ca.capicturebackend.config.CosClientConfig;
 import com.qcloud.cos.model.ciModel.persistence.PicOperations;
 import org.springframework.stereotype.Component;
@@ -82,6 +82,31 @@ public class CosManager {
         picOperations.setRules(rules);
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
+    }
+
+    /**
+     * 删除对象
+     *
+     * @param key 文件 key
+     */
+    public void deleteObject(String key) throws CosClientException {
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
+    }
+
+
+    /**
+     * 批量删除对象
+     *
+     * @param keys 文件 key 列表
+     */
+    public void deleteObjectByBatch(ArrayList<String> keys) throws CosClientException {
+        DeleteObjectsRequest deleteObjectsRequest = new DeleteObjectsRequest(cosClientConfig.getBucket());
+        ArrayList<DeleteObjectsRequest.KeyVersion> keyList = new ArrayList<>();
+        for (String key : keys) {
+            keyList.add(new DeleteObjectsRequest.KeyVersion(key));
+        }
+        deleteObjectsRequest.setKeys(keyList);
+        cosClient.deleteObjects(deleteObjectsRequest);
     }
 
 

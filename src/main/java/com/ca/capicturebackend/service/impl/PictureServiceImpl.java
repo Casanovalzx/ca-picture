@@ -2,7 +2,6 @@ package com.ca.capicturebackend.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -13,15 +12,12 @@ import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
 import com.ca.capicturebackend.manager.CacheManager;
-import com.ca.capicturebackend.manager.FileManager;
+import com.ca.capicturebackend.manager.CosManager;
 import com.ca.capicturebackend.manager.upload.FilePictureUpload;
 import com.ca.capicturebackend.manager.upload.PictureUploadTemplate;
 import com.ca.capicturebackend.manager.upload.UrlPictureUpload;
 import com.ca.capicturebackend.model.dto.file.UploadPictureResult;
-import com.ca.capicturebackend.model.dto.picture.PictureQueryRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureReviewRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadRequest;
+import com.ca.capicturebackend.model.dto.picture.*;
 import com.ca.capicturebackend.model.entity.Picture;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.enums.PictureReviewStatusEnum;
@@ -38,21 +34,18 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -67,7 +60,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
     @Resource
-    private FileManager fileManager;
+    private CosManager cosManager;
 
     @Resource
     private UserService userService;
@@ -79,13 +72,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private UrlPictureUpload urlPictureUpload;
 
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Resource
-    private RedissonClient redissonClient;
-
-    @Resource
     private CacheManager cacheManager;
+
+    @Resource
+    private PictureMapper pictureMapper;
 
     /**
      * 本地缓存
@@ -138,8 +128,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             pictureId = pictureUploadRequest.getId();
         }
         // 如果是更新，判断图片是否存在
+        Picture oldPicture = null;
         if (pictureId != null) {
-            Picture oldPicture = this.getById(pictureId);
+            oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
             // 仅本人或管理员可以编辑图片
             if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
@@ -183,6 +174,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         boolean result = this.saveOrUpdate(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败，数据库操作失败");
+        // oldPicture 不为空，表示更新，清理对象存储中的旧图片
+        if (oldPicture != null) {
+            this.clearPictureFile(oldPicture);
+        }
         return PictureVO.objToVo(picture);
     }
 
@@ -456,6 +451,82 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return uploadCount;
+    }
+
+    /**
+     * 清理图片
+     *
+     * @param oldPicture
+     */
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // 清理压缩图、缩略图和原图
+        ArrayList<String> urls = new ArrayList<>();
+        urls.add(oldPicture.getUrl());
+        urls.add(oldPicture.getThumbnailUrl());
+        urls.add(oldPicture.getOriginalUrl());
+        ArrayList<String> toDeleteKeys = new ArrayList<>();
+        for (String url : urls) {
+            URI uri = null;
+            try {
+                uri = new URI(url);
+            } catch (URISyntaxException e) {
+                log.error("URL 格式错误，该 URL 为：{}", url, e);
+                continue;
+            }
+            String key = uri.getPath().substring(1);
+            if (StrUtil.isNotBlank(key)) {
+                toDeleteKeys.add(key);
+            }
+        }
+        cosManager.deleteObjectByBatch(toDeleteKeys);
+    }
+
+    /**
+     * 定时清理无用的图片文件（每天凌晨3点清理）
+     */
+    @Override
+    @Scheduled(cron = "0 0 3 * * ?")
+//    @Scheduled(fixedDelay = 60000)
+    public void regularClearPictureFile() {
+        List<ToDeletePictureDto> toDeletePicture = pictureMapper.findToDeletePicture();
+        ArrayList<String> urls = new ArrayList<>();
+        for (ToDeletePictureDto toDeletePictureDto : toDeletePicture) {
+            if (StrUtil.isNotBlank(toDeletePictureDto.getUrl())) {
+                urls.add(toDeletePictureDto.getUrl());
+            }
+            if (StrUtil.isNotBlank(toDeletePictureDto.getThumbnailUrl())) {
+                urls.add(toDeletePictureDto.getThumbnailUrl());
+            }
+            if (StrUtil.isNotBlank(toDeletePictureDto.getOriginalUrl())) {
+                urls.add(toDeletePictureDto.getOriginalUrl());
+            }
+        }
+        ArrayList<String> toDeleteKeys = new ArrayList<>();
+        for (String url : urls) {
+            URI uri = null;
+            try {
+                uri = new URI(url);
+            } catch (URISyntaxException e) {
+                log.error("URL 格式错误，该 URL 为：{}", url, e);
+                continue;
+            }
+            String key = uri.getPath().substring(1);
+            if (StrUtil.isNotBlank(key)) {
+                toDeleteKeys.add(key);
+            }
+        }
+        cosManager.deleteObjectByBatch(toDeleteKeys);
     }
 
 }

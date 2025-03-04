@@ -76,7 +76,7 @@ public class UrlPictureUpload extends PictureUploadTemplate {
     protected String getOriginFilename(Object inputSource) {
         String fileUrl = (String) inputSource;
         // 从 URL 中提取文件名
-        return FileUtil.mainName(fileUrl);
+        return FileUtil.getName(fileUrl);
     }
 
     @Override

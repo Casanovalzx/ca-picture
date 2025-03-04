@@ -39,6 +39,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!-- Spring Session + Redis -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
         <!-- 本地缓存 Caffeine -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -57,7 +62,7 @@
             <artifactId>jsoup</artifactId>
             <version>1.15.3</version>
         </dependency>
-        <!-- 对象存储https://cloud.tencent.com/document/product/436/10199 -->
+        <!-- 对象存储：https://cloud.tencent.com/document/product/436/10199 -->
         <dependency>
             <groupId>com.qcloud</groupId>
             <artifactId>cos_api</artifactId>

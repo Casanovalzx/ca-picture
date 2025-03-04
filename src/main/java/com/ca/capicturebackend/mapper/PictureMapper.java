@@ -1,7 +1,10 @@
 package com.ca.capicturebackend.mapper;
 
+import com.ca.capicturebackend.model.dto.picture.ToDeletePictureDto;
 import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+import java.util.List;
 
 /**
 * @author Casanova
@@ -11,6 +14,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface PictureMapper extends BaseMapper<Picture> {
 
+    List<ToDeletePictureDto> findToDeletePicture();
 }
 
 

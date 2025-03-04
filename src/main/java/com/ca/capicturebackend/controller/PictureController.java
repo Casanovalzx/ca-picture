@@ -105,6 +105,26 @@ public class PictureController {
         // 操作数据库
         boolean result = pictureService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        pictureService.clearPictureFile(oldPicture);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 清理数据库中被标记删除但未在 Cos 中被删除的图片 （仅管理员可用）
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete/useless")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> deleteUselessPicture(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        // 仅管理员可以操作
+        if (!userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        // 操作数据库
+        pictureService.regularClearPictureFile();
         return ResultUtils.success(true);
     }
 

@@ -10,6 +10,8 @@ import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.PictureVO;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -98,4 +100,17 @@ public interface PictureService extends IService<Picture> {
      */
     Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
                                  User loginUser);
+
+    /**
+     * 清理图片文件
+     *
+     * @param oldPicture
+     */
+    @Async
+    void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 定时清理无用的图片文件（每天凌晨3点清理）
+     */
+    void regularClearPictureFile();
 }

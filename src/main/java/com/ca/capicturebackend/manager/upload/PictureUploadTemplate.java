@@ -70,7 +70,7 @@ public abstract class PictureUploadTemplate {
                 CIObject compressedCiObject = objectList.get(0);
                 // 缩略图默认等于压缩后的图
                 CIObject thumbnailCiObject = objectList.get(0);
-                // 有所提略图生成时，才获取缩略图
+                // 有缩略图生成时，才获取缩略图
                 if (objectList.size() > 1) {
                     thumbnailCiObject = objectList.get(1);
                 }
@@ -127,7 +127,7 @@ public abstract class PictureUploadTemplate {
         // 封装返回结果
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
-        uploadPictureResult.setOriginalUrl(cosClientConfig.getHost() + "/" + uploadPath);
+        uploadPictureResult.setOriginalUrl(cosClientConfig.getHost() + uploadPath);
         uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
         uploadPictureResult.setPicName(FileUtil.mainName(originalFilename));
         uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
@@ -154,7 +154,7 @@ public abstract class PictureUploadTemplate {
         double pictureScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
         // 封装返回结果
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
-        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + uploadPath);
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + uploadPath);
         uploadPictureResult.setOriginalUrl(cosClientConfig.getHost() + "/" + uploadPath);
         uploadPictureResult.setPicName(FileUtil.mainName(originalFilename));
         uploadPictureResult.setPicSize(FileUtil.size(file));

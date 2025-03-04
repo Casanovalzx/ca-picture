@@ -27,7 +27,7 @@ create table if not exists picture
 (
     id            bigint auto_increment comment 'id' primary key,
     url           varchar(512)                       not null comment '图片 url',
-    originalUrl   varchar(512)                       not null comment '原始图片 url',
+    originalUrl   varchar(512)                       null comment '原始图片 url',
     thumbnailUrl  varchar(512)                       null comment '缩略图 url',
     name          varchar(128)                       not null comment '图片名称',
     introduction  varchar(512)                       null comment '简介',
@@ -47,11 +47,35 @@ create table if not exists picture
     reviewMessage VARCHAR(512)                       NULL COMMENT '审核信息',
     reviewerId    BIGINT                             NULL COMMENT '审核人 ID',
     reviewTime    DATETIME                           NULL COMMENT '审核时间',
+    spaceId       BIGINT                             NULL COMMENT '空间 id（为空表示公共空间）',
     INDEX idx_name (name),                 -- 提升基于图片名称的查询性能
     INDEX idx_introduction (introduction), -- 用于模糊搜索图片简介
     INDEX idx_category (category),         -- 提升基于分类的查询性能
     INDEX idx_tags (tags),                 -- 提升基于标签的查询性能
     INDEX idx_userId (userId),             -- 提升基于用户 ID 的查询性能
-    INDEX idx_reviewStatus (reviewStatus)  -- 提升基于盛和状态的查询性能
+    INDEX idx_reviewStatus (reviewStatus), -- 提升基于审核状态的查询性能
+    INDEX idx_spaceId (spaceId)            -- 提升基于空间 ID 的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
+
+
+-- 空间表
+create table if not exists space
+(
+    id         bigint auto_increment comment 'id' primary key,
+    spaceName  varchar(128)                       null comment '空间名称',
+    spaceLevel int      default 0                 null comment '空间级别：0-普通版 1-专业版 2-旗舰版',
+    maxSize    bigint   default 0                 null comment '空间图片的最大总大小',
+    maxCount   bigint   default 0                 null comment '空间图片的最大数量',
+    totalSize  bigint   default 0                 null comment '当前空间下图片的总大小',
+    totalCount bigint   default 0                 null comment '当前空间下的图片数量',
+    userId     bigint                             not null comment '创建用户 id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    editTime   datetime default CURRENT_TIMESTAMP not null comment '编辑时间',
+    updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint  default 0                 not null comment '是否删除',
+    -- 索引设计
+    index idx_userId (userId),        -- 提升基于用户的查询效率
+    index idx_spaceName (spaceName),  -- 提升基于空间名称的查询效率
+    index idx_spaceLevel (spaceLevel) -- 提升按空间级别查询的效率
+) comment '空间' collate = utf8mb4_unicode_ci;
 
