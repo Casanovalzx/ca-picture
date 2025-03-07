@@ -88,34 +88,31 @@ public class CacheManager {
         RLock lock = redissonClient.getLock(lockKey);
         boolean lockAcquired;
         try {
-            lockAcquired = lock.tryLock(10, 60, TimeUnit.SECONDS);
+            lockAcquired = lock.tryLock(3, 15, TimeUnit.SECONDS);
+            if(lockAcquired) {
+                // 4. 查询数据库
+                T dbData = dbQueryFunction.get();
+                String cacheValue = JSONUtil.toJsonStr(dbData);
+                int expireTime = Convert.toInt(RandomUtil.randomFloat(1, 2) * normalTtl);
+
+                if (dbData != null) {
+                    // 有数据，正常缓存
+                    LOCAL_CACHE.put(cacheKey, cacheValue);
+                    opsForValue.set(cacheKey, cacheValue, expireTime, timeUnit);
+                } else {
+                    // 无数据，缓存空值
+                    opsForValue.set(cacheKey, cacheValue, emptyTtl, timeUnit);
+                }
+                return dbData;
+            }
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后再试");
         } catch (InterruptedException e) {
             log.warn("Redisson获取锁被中断", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后再试");
-        }
-
-        if (!lockAcquired) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "查询繁忙，请稍后再试");
-        }
-
-        try {
-            // 4. 查询数据库
-            T dbData = dbQueryFunction.get();
-            String cacheValue = JSONUtil.toJsonStr(dbData);
-            int expireTime = Convert.toInt(RandomUtil.randomFloat(1, 2) * normalTtl);
-
-            if (dbData != null) {
-                // 有数据，正常缓存
-                LOCAL_CACHE.put(cacheKey, cacheValue);
-                opsForValue.set(cacheKey, cacheValue, expireTime, timeUnit);
-            } else {
-                // 无数据，缓存空值
-                opsForValue.set(cacheKey, cacheValue, emptyTtl, timeUnit);
-            }
-
-            return dbData;
         } finally {
-            lock.unlock();
+            if (lock.isLocked() && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
     }
 }

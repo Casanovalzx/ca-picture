@@ -3,8 +3,6 @@ package com.ca.capicturebackend.manager;
 import cn.hutool.core.io.FileUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.exception.CosClientException;
-import com.qcloud.cos.exception.CosServiceException;
-import com.qcloud.cos.exception.MultiObjectDeleteException;
 import com.qcloud.cos.model.*;
 import com.ca.capicturebackend.config.CosClientConfig;
 import com.qcloud.cos.model.ciModel.persistence.PicOperations;
@@ -13,6 +11,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 public class CosManager {
@@ -99,7 +99,8 @@ public class CosManager {
      *
      * @param keys 文件 key 列表
      */
-    public void deleteObjectByBatch(ArrayList<String> keys) throws CosClientException {
+    public void deleteObjectByBatch(List<String> keys) throws CosClientException {
+        if(keys == null || keys.isEmpty()) return;
         DeleteObjectsRequest deleteObjectsRequest = new DeleteObjectsRequest(cosClientConfig.getBucket());
         ArrayList<DeleteObjectsRequest.KeyVersion> keyList = new ArrayList<>();
         for (String key : keys) {

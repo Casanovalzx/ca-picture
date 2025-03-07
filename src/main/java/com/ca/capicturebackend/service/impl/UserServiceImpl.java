@@ -3,6 +3,7 @@ package com.ca.capicturebackend.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,8 +11,6 @@ import com.ca.capicturebackend.constant.UserConstant;
 import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadRequest;
 import com.ca.capicturebackend.model.dto.user.UserQueryRequest;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.enums.UserRoleEnum;
@@ -20,15 +19,12 @@ import com.ca.capicturebackend.model.vo.UserVO;
 import com.ca.capicturebackend.service.UserService;
 import com.ca.capicturebackend.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +38,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     /**
      * 用户注册
@@ -89,6 +88,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
         }
         return user.getId();
+    }
+
+    @Override
+    public void deleteUser(long userId, User loginUser) {
+        transactionTemplate.execute(status -> {
+            // 获取旧用户名并添加删除后缀，更新isDelete标记逻辑删除
+            User oldUser = this.getById(userId);
+            String deletedUserAccount = oldUser.getUserAccount() + "(@deleted)" + RandomUtil.randomNumbers(6);
+            User deletedUser = new User();
+            deletedUser.setId(userId);
+            deletedUser.setUserAccount(deletedUserAccount);
+            this.updateById(deletedUser);
+            boolean result = this.removeById(userId);
+            ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "删除失败，数据库错误");
+            return true;
+        });
     }
 
     /**

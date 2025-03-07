@@ -6,7 +6,8 @@ public enum CommonKeyEnum {
 
     // 示例前缀定义
     PICTURE_LOCK_PREFIX("capicture:picture:lock:"),
-    PICTURE_CACHE_PREFIX("capicture:picture:");      // 用户缓存
+    PICTURE_CACHE_PREFIX("capicture:picture:"),
+    SPACE_LOCK_PREFIX("capicture:picture:lock");      // 用户缓存
 
     private final String prefix;
 

@@ -9,6 +9,9 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * 图片视图
+ */
 @Data
 public class PictureVO implements Serializable {
 
@@ -76,6 +79,11 @@ public class PictureVO implements Serializable {
      * 用户 id
      */
     private Long userId;
+
+    /**
+     * 空间 id
+     */
+    private Long spaceId;
 
     /**
      * 创建时间

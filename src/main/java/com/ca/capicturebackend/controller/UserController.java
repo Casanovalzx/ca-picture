@@ -1,6 +1,8 @@
 package com.ca.capicturebackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ca.capicturebackend.annotation.AuthCheck;
 import com.ca.capicturebackend.common.BaseResponse;
@@ -11,9 +13,11 @@ import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
 import com.ca.capicturebackend.model.dto.user.*;
+import com.ca.capicturebackend.model.entity.Space;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.LoginUserVO;
 import com.ca.capicturebackend.model.vo.UserVO;
+import com.ca.capicturebackend.service.SpaceService;
 import com.ca.capicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +32,9 @@ public class UserController {
 
     @Resource
     UserService userService;
+
+    @Resource
+    SpaceService spaceService;
 
     /**
      * 用户注册
@@ -119,12 +126,20 @@ public class UserController {
      */
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
+    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest,
+                                            HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean b = userService.removeById(deleteRequest.getId());
-        return ResultUtils.success(b);
+        Long userId = deleteRequest.getId();
+        User loginUser = userService.getLoginUser(request);
+        userService.deleteUser(userId, loginUser);
+        // 获取该用户对应的空间，并删除对应空间
+        QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userId", userId);
+        Space toDeleteSpace = spaceService.getOne(queryWrapper);
+        spaceService.deleteSpace(toDeleteSpace.getId(), loginUser);
+        return ResultUtils.success(true);
     }
 
     /**

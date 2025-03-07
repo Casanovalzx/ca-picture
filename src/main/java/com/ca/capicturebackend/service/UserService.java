@@ -29,6 +29,15 @@ public interface UserService extends IService<User> {
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
     /**
+     * 删除用户
+     *
+     * @param userId
+     * @param loginUser
+     * @return
+     */
+    void deleteUser(long userId, User loginUser);
+
+    /**
      * 用户登陆
      *
      * @param userAccount  用户账号
@@ -101,5 +110,7 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean isAdmin(User user);
+
+
 
 }

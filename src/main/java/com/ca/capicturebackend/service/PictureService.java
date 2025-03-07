@@ -2,18 +2,17 @@ package com.ca.capicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ca.capicturebackend.model.dto.picture.PictureQueryRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureReviewRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadRequest;
+import com.ca.capicturebackend.model.dto.picture.*;
 import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.PictureVO;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Casanova
@@ -61,11 +60,12 @@ public interface PictureService extends IService<Picture> {
 
     /**
      * 获取图片包装类（分页，有缓存）
+     *
+     * @param pictureQueryRequest
      * @param request
-     * @param servletRequest
      * @return
      */
-    Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest request, HttpServletRequest servletRequest);
+    Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
 
     /**
      * 获取查询条件
@@ -110,7 +110,39 @@ public interface PictureService extends IService<Picture> {
     void clearPictureFile(Picture oldPicture);
 
     /**
+     * 删除图片
+     *
+     * @param pictureId
+     * @param loginUser
+     */
+    void deletePicture(long pictureId, User loginUser);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest
+     * @param loginUser
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
+     * 校验空间图片的权限
+     *
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
      * 定时清理无用的图片文件（每天凌晨3点清理）
      */
     void regularClearPictureFile();
+
+    /**
+     * 将待删除图片列表中的所有 URL 转换为 KEY
+     *
+     * @param toDeletePictureList
+     * @return
+     */
+    List<String> pictureUrlToKey(List<ToDeletePictureDto> toDeletePictureList);
 }
