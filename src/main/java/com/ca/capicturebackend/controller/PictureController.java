@@ -50,16 +50,6 @@ public class PictureController {
     private SpaceService spaceService;
 
     /**
-     * 本地缓存
-     */
-    private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
-            .initialCapacity(1024)
-            .maximumSize(10_000L)
-            // 缓存 5 分钟移除
-            .expireAfterWrite(5L, TimeUnit.MINUTES)
-            .build();
-
-    /**
      * 上传图片（可重新上传）
      */
     @PostMapping("/upload")
@@ -104,25 +94,6 @@ public class PictureController {
     }
 
     /**
-     * 清理数据库中被标记删除但未在 Cos 中被删除的图片 （仅管理员可用）
-     *
-     * @param request
-     * @return
-     */
-    @PostMapping("/delete/useless")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteUselessPicture(HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
-        // 仅管理员可以操作
-        if (!userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        // 操作数据库
-        pictureService.regularClearPictureFile();
-        return ResultUtils.success(true);
-    }
-
-    /**
      * 更新图片（仅管理员可用）
      *
      * @param pictureUpdateRequest
@@ -157,6 +128,23 @@ public class PictureController {
     }
 
     /**
+     * 编辑图片（给用户使用）
+     *
+     * @param pictureEditRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/edit")
+    public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest, HttpServletRequest request) {
+        if (pictureEditRequest == null || pictureEditRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        pictureService.editPicture(pictureEditRequest, loginUser);
+        return ResultUtils.success(true);
+    }
+
+    /**
      * 根据 id 获取图片（仅管理员可用）
      */
     @GetMapping("/get")
@@ -175,17 +163,21 @@ public class PictureController {
     @GetMapping("/get/vo")
     public BaseResponse<PictureVO> getPictureVOById(long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        // 查询数据库
-        Picture picture = pictureService.getById(id);
-        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 空间权限校验
-        Long spaceId = picture.getSpaceId();
-        if (spaceId != null) {
-            User loginUser = userService.getLoginUser(request);
-            pictureService.checkPictureAuth(loginUser, picture);
-        }
+        Picture picture = pictureService.getPicture(id, request);
         // 获取封装类
         return ResultUtils.success(pictureService.getPictureVO(picture, request));
+    }
+
+    /**
+     * 根据 id 获取图片（封装类，有缓存）
+     */
+    @GetMapping("/get/vo/cache")
+    public BaseResponse<PictureVO> getPictureVOByIdWithCache(long id, HttpServletRequest request) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        PictureVO pictureVO = pictureService.getPictureVOWithCache(id, request);
+        ThrowUtils.throwIf(pictureVO == null, ErrorCode.NOT_FOUND_ERROR);
+        return ResultUtils.success(pictureVO);
     }
 
     /**
@@ -244,37 +236,25 @@ public class PictureController {
         // 限制爬虫
         long size = pictureQueryRequest.getPageSize();
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 空间权限校验
+        Long spaceId = pictureQueryRequest.getSpaceId();
+        if (spaceId == null) {
+            // 公开图库
+            // 普通用户默认只能看到审核通过的数据
+            pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+            pictureQueryRequest.setNullSpaceId(true);
+        } else {
+            // 私有空间
+            User loginUser = userService.getLoginUser(request);
+            Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
         // 查询缓存和数据库
         Page<PictureVO> result = pictureService.getPictureVOPageWithCache(pictureQueryRequest, request);
         return ResultUtils.success(result);
-    }
-
-    /**
-     * 编辑图片（给用户使用）
-     */
-    @PostMapping("/edit")
-    public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest, HttpServletRequest request) {
-        if (pictureEditRequest == null || pictureEditRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User loginUser = userService.getLoginUser(request);
-        pictureService.editPicture(pictureEditRequest, loginUser);
-        return ResultUtils.success(true);
-    }
-
-    /**
-     * 暂时的分类标签获取函数
-     *
-     * @return
-     */
-    @GetMapping("/tag_category")
-    public BaseResponse<PictureTagCategory> listPictureTagCategory() {
-        PictureTagCategory pictureTagCategory = new PictureTagCategory();
-        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
-        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报", "影视");
-        pictureTagCategory.setTagList(tagList);
-        pictureTagCategory.setCategoryList(categoryList);
-        return ResultUtils.success(pictureTagCategory);
     }
 
     /**
@@ -310,4 +290,40 @@ public class PictureController {
         Integer uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return ResultUtils.success(uploadCount);
     }
+
+    /**
+     * 清理数据库中被标记删除但未在 Cos 中被删除的图片 （仅管理员可用）
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete/useless")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> deleteUselessPicture(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        // 仅管理员可以操作
+        if (!userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        // 操作数据库
+        pictureService.regularClearPictureFile();
+        return ResultUtils.success(true);
+    }
+
+
+    /**
+     * 暂时的分类标签获取函数
+     *
+     * @return
+     */
+    @GetMapping("/tag_category")
+    public BaseResponse<PictureTagCategory> listPictureTagCategory() {
+        PictureTagCategory pictureTagCategory = new PictureTagCategory();
+        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
+        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报", "影视");
+        pictureTagCategory.setTagList(tagList);
+        pictureTagCategory.setCategoryList(categoryList);
+        return ResultUtils.success(pictureTagCategory);
+    }
+
 }

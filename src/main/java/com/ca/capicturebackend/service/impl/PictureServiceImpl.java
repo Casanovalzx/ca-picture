@@ -1,6 +1,7 @@
 package com.ca.capicturebackend.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
@@ -117,7 +118,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
     }
 
-
     /**
      * 上传图片
      *
@@ -230,7 +230,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 oldPictureCount = 1;
             }
             // 如果更新的是空间内的图片，更新空间的使用额度
-            if(finalSpaceId == null) {
+            if (finalSpaceId == null) {
                 return true;
             }
             boolean update = spaceService.lambdaUpdate()
@@ -241,7 +241,32 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
             return true;
         });
+        // 删除缓存
+        String cacheKeyPrefix = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+        cacheManager.deleteRedisCacheByPrefix(cacheKeyPrefix);
+        cacheManager.deleteLocalCacheByPrefix(cacheKeyPrefix);
         return PictureVO.objToVo(picture);
+    }
+
+    /**
+     * 获取图片实体类（单条）
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @Override
+    public Picture getPicture(long id, HttpServletRequest request) {
+        // 查询数据库
+        Picture picture = this.getById(id);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 空间权限校验
+        Long spaceId = picture.getSpaceId();
+        if (spaceId != null) {
+            User loginUser = userService.getLoginUser(request);
+            this.checkPictureAuth(loginUser, picture);
+        }
+        return picture;
     }
 
     /**
@@ -263,6 +288,39 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             pictureVO.setUser(userVO);
         }
         return pictureVO;
+    }
+
+    /**
+     * 获取图片包装类（单条，有缓存）
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @Override
+    public PictureVO getPictureVOWithCache(long id, HttpServletRequest request) {
+        // 构建 key
+        String queryCondition = String.valueOf(id);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        String cacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+        String lockKey = CommonKeyEnum.PICTURE_LOCK_PREFIX.key("getPictureVOWithCache", hashKey);
+        Picture picture =  cacheManager.queryWithCache(
+                cacheKey,
+                lockKey,
+                new TypeReference<Picture>() {}, // 这里动态指定类型
+                () -> this.getById(id),
+                300,
+                120,
+                TimeUnit.SECONDS
+        );
+        ThrowUtils.throwIf(ObjUtil.isEmpty(picture), ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+        // 空间权限校验
+        Long spaceId = picture.getSpaceId();
+        if (spaceId != null) {
+            User loginUser = userService.getLoginUser(request);
+            this.checkPictureAuth(loginUser, picture);
+        }
+        return this.getPictureVO(picture, request);
     }
 
     /**
@@ -303,44 +361,33 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return pictureVOPage;
     }
 
+    /**
+     * 获取图片包装类（分页，有缓存）
+     *
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
     @Override
     public Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest, HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
-        // 空间权限校验
-        Long spaceId = pictureQueryRequest.getSpaceId();
-        if (spaceId == null) {
-            // 公开图库
-            // 普通用户默认只能看到审核通过的数据
-            pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-            pictureQueryRequest.setNullSpaceId(true);
-        } else {
-            // 私有空间
-            User loginUser = userService.getLoginUser(request);
-            Space space = spaceService.getById(spaceId);
-            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-            if (!loginUser.getId().equals(space.getUserId())) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
-            }
-        }
         // 构建 key
         String queryCondition = JSONUtil.toJsonStr(pictureQueryRequest);
         String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
         String cacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", hashKey);
         String lockKey = CommonKeyEnum.PICTURE_LOCK_PREFIX.key("getPictureVOPageWithCache", hashKey);
         // 查询数据库
-        return cacheManager.queryWithCache(
+        Page<Picture> picturePage = cacheManager.queryWithCache(
                 cacheKey,
                 lockKey,
-                Page.class,
-                () -> this.getPictureVOPage(
-                        this.page(new Page<>(current, size), this.getQueryWrapper(pictureQueryRequest)),
-                        request
-                ),
+                new TypeReference<Page<Picture>>() {},
+                () -> this.page(new Page<>(current, size), this.getQueryWrapper(pictureQueryRequest)),
                 300,
                 120,
                 TimeUnit.SECONDS
         );
+        return this.getPictureVOPage(picturePage, request);
     }
 
     /**
@@ -372,6 +419,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String reviewMessage = pictureQueryRequest.getReviewMessage();
         Long reviewerId = pictureQueryRequest.getReviewerId();
         Long spaceId = pictureQueryRequest.getSpaceId();
+        Date startEditTime = pictureQueryRequest.getStartEditTime();
+        Date endEditTime = pictureQueryRequest.getEndEditTime();
         boolean nullSpaceId = pictureQueryRequest.isNullSpaceId();
         String sortField = pictureQueryRequest.getSortField();
         String sortOrder = pictureQueryRequest.getSortOrder();
@@ -399,6 +448,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.eq(ObjUtil.isNotEmpty(picScale), "picScale", picScale);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), "reviewStatus", reviewStatus);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), "reviewerId", reviewerId);
+        queryWrapper.ge(ObjUtil.isNotEmpty(startEditTime), "editTime", startEditTime);
+        queryWrapper.lt(ObjUtil.isNotEmpty(endEditTime), "editTime", endEditTime);
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
             /* and (tag like "%\"Tag1\"%" and like "%\"Tag2\"%") */
@@ -411,6 +462,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return queryWrapper;
     }
 
+    /**
+     * 图片审核
+     * @param pictureReviewRequest
+     * @param loginUser
+     */
     @Override
     public void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser) {
         // 1. 校验参数
@@ -434,6 +490,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         updatePicture.setReviewTime(new Date());
         boolean result = this.updateById(updatePicture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 删除缓存
+        String cacheKeyPrefix = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+        cacheManager.deleteRedisCacheByPrefix(cacheKeyPrefix);
+        cacheManager.deleteLocalCacheByPrefix(cacheKeyPrefix);
     }
 
     /**
@@ -590,6 +650,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
             return true;
         });
+        // 删除对应图片缓存和首页缓存
+        String queryCondition = String.valueOf(pictureId);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+        String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+        cacheManager.delete(pictureCacheKey);
+        cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
+        cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
         // 异步清理文件
         this.clearPictureFile(oldPicture);
     }
@@ -623,8 +691,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 操作数据库
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 删除对应图片缓存和首页缓存
+        String queryCondition = String.valueOf(id);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+        String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+        cacheManager.delete(pictureCacheKey);
+        cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
+        cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
     }
-
 
     /**
      * 校验空间图片的权限
