@@ -10,7 +10,7 @@ export const PIC_REVIEW_STATUS_ENUM = {
 /**
  * 图片审核状态文案
  */
-export const PIC_REVIEW_STATUS_MAP = {
+export const PIC_REVIEW_STATUS_MAP: { [key: string]: string } = {
   0: '待审核',
   1: '通过',
   2: '拒绝'

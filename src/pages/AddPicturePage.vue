@@ -3,8 +3,14 @@
     <h2 style="margin-bottom: 16px">
       {{ route.query?.id ? '修改图片' : '创建图片' }}
     </h2>
+    <a-typography-paragraph v-if="spaceId" type="secondary">
+      保存至空间：
+      <router-link :to="`/space/${spaceId}`">{{ spaceId }}</router-link>
+    </a-typography-paragraph>
     <!-- 图片上传组件 -->
-    <PictureUpload :picture="picture" :onSuccess="onSuccess" />
+    <PictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
+    <!-- URL 图片上传组件 -->
+    <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
     <!-- 图片信息表单 -->
     <a-form v-if="picture" layout="vertical" :model="pictureForm" @finish="handleSubmit">
       <a-form-item label="名称" name="name">
@@ -44,7 +50,7 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   editPictureUsingPost,
@@ -52,14 +58,19 @@ import {
   listPictureTagCategoryUsingGet
 } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
+import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
 
 const picture = ref<API.PictureVO>()
 const pictureForm = reactive<API.PictureEditRequest>({})
-
 const onSuccess = (newPicture: API.PictureVO) => {
   picture.value = newPicture
   pictureForm.name = newPicture.name
 }
+// 空间 id
+const spaceId = computed(() => {
+  return route.query?.spaceId
+})
+
 
 const router = useRouter()
 /**
@@ -73,14 +84,22 @@ const handleSubmit = async (values: any) => {
   }
   const res = await editPictureUsingPost({
     id: pictureId,
+    spaceId: spaceId.value,
     ...values
   })
   if (res.data.code === 0 && res.data.data) {
     message.success('创建成功')
-    // 跳转到图片详情页
-    router.push({
-      path: `/picture/${pictureId}`
-    })
+    // 如果 spaceId 存在，跳转到空间页面；否则跳转到图片详情页
+    if (spaceId.value) {
+      router.push({
+        path: `/space/${spaceId.value}`
+      })
+    } else {
+      // 跳转到图片详情页
+      router.push({
+        path: `/picture/${pictureId}`
+      })
+    }
   } else {
     message.error('创建失败，' + res.data.message)
   }

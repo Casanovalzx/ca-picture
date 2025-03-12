@@ -1,5 +1,13 @@
 <template>
   <div id="pictureManagePage"></div>
+  <a-flex justify="space-between">
+    <h2>图片管理</h2>
+    <a-space>
+      <a-button type="primary" @click="$router.push('/add_picture')">+ 创建图片</a-button>
+      <a-button type="primary" @click="$router.push('/add_picture/batch')">+ 批量创建图片</a-button>
+    </a-space>
+  </a-flex>
+  <div style="margin-bottom: 16px" />
   <!-- 搜索表单 -->
   <a-form layout="inline" :model="searchParams" @finish="doSearch">
     <a-form-item label="关键词" name="searchText">
@@ -33,9 +41,6 @@
     <a-form-item>
       <a-button type="primary" html-type="submit">搜索</a-button>
     </a-form-item>
-    <div style="margin-left: auto;">
-      <a-button type="primary" href="/add_picture" target="_blank">+ 创建图片</a-button>
-    </div>
   </a-form>
   <div style="margin-bottom: 16px" />
   <!-- 表格 -->
@@ -85,7 +90,7 @@
             @confirm="handleReview(record, PIC_REVIEW_STATUS_ENUM.PASS)"
             @cancel="cancelConfirm"
           >
-            <a-button type="link">
+            <a-button>
               通过
             </a-button>
           </a-popconfirm>
@@ -97,11 +102,11 @@
             @confirm="handleReview(record, PIC_REVIEW_STATUS_ENUM.REJECT)"
             @cancel="cancelConfirm"
           >
-            <a-button type="link" danger>
+            <a-button danger>
               拒绝
             </a-button>
           </a-popconfirm>
-          <a-button type="link" :href="`/add_picture?id=${record.id}`" target="_blank">
+          <a-button @click.prevent="$router.push(`/add_picture?id=${record.id}`)" type="default">
             编辑
           </a-button>
           <a-popconfirm
@@ -111,7 +116,7 @@
             @confirm="doDelete(record.id)"
             @cancel="cancelConfirm"
           >
-            <a-button type="link" danger>
+            <a-button type="primary" danger>
               删除
             </a-button>
           </a-popconfirm>
@@ -200,7 +205,8 @@ const searchParams = reactive<API.PictureQueryRequest>({
 // 获取数据
 const fetchData = async () => {
   const res = await listPictureByPageUsingPost({
-    ...searchParams
+    ...searchParams,
+    nullSpaceId: true
   })
   if (res.data.data) {
     dataList.value = res.data.data.records ?? []

@@ -60,12 +60,21 @@
                 <EditOutlined />
               </template>
             </a-button>
-            <a-button v-if="canEdit" danger @click="doDelete">
-              删除
-              <template #icon>
-                <DeleteOutlined />
-              </template>
-            </a-button>
+            <a-popconfirm
+              v-if="canEdit"
+              title="确认删除？"
+              ok-text="是"
+              cancel-text="否"
+              @confirm="doDelete"
+              @cancel="cancelConfirm"
+            >
+              <a-button type="primary" danger>
+                删除
+                <template #icon>
+                  <DeleteOutlined />
+                </template>
+              </a-button>
+            </a-popconfirm>
             <a-button type="primary" @click="doDownload">
               免费下载
               <template #icon>
@@ -81,7 +90,10 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
-import { deletePictureUsingPost, getPictureVoByIdUsingGet } from '@/api/pictureController.ts'
+import {
+  deletePictureUsingPost,
+  getPictureVoByIdWithCacheUsingGet
+} from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { downloadImage, formatSize } from '@/utils'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
@@ -95,7 +107,7 @@ const picture = ref<API.PictureVO>({})
 // 获取图片详情
 const fetchPictureDetail = async () => {
   try {
-    const res = await getPictureVoByIdUsingGet({
+    const res = await getPictureVoByIdWithCacheUsingGet({
       id: props.id
     })
     if (res.data.code === 0 && res.data.data) {
@@ -126,9 +138,17 @@ const canEdit = computed(() => {
 })
 
 // 编辑
+// 编辑
 const doEdit = () => {
-  router.push('/add_picture?id=' + picture.value.id)
+  router.push({
+    path: '/add_picture',
+    query: {
+      id: picture.value.id,
+      spaceId: picture.value.spaceId
+    }
+  })
 }
+
 // 删除
 const doDelete = async () => {
   const id = picture.value.id
@@ -137,10 +157,15 @@ const doDelete = async () => {
   }
   const res = await deletePictureUsingPost({ id })
   if (res.data.code === 0) {
+    router.back()
     message.success('删除成功')
   } else {
     message.error('删除失败')
   }
+}
+// 取消操作
+const cancelConfirm = (e: MouseEvent) => {
+  message.info('操作已取消')
 }
 // 处理下载
 const doDownload = () => {

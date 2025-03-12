@@ -1,7 +1,11 @@
 <template>
   <div id="userManagePage"></div>
+
   <!-- 搜索表单 -->
   <a-form layout="inline" :model="searchParams" @finish="doSearch">
+    <a-form-item label="id">
+      <a-input v-model:value="searchParams.id" placeholder="输入id" allow-clear />
+    </a-form-item>
     <a-form-item label="账号">
       <a-input v-model:value="searchParams.userAccount" placeholder="输入账号" allow-clear />
     </a-form-item>
@@ -37,14 +41,13 @@
       </template>
       <template v-else-if="column.key === 'action'">
         <a-popconfirm
-          v-if="record.reviewStatus !== PIC_REVIEW_STATUS_ENUM.REJECT"
           title="确认删除？"
           ok-text="是"
           cancel-text="否"
           @confirm="doDelete(record.id)"
           @cancel="cancelConfirm"
         >
-          <a-button type="link" danger>
+          <a-button type="primary" danger>
             删除
           </a-button>
         </a-popconfirm>
