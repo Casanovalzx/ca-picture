@@ -7,11 +7,9 @@ import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.PictureVO;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.scheduling.annotation.Async;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 
 /**

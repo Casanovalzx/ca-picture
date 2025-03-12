@@ -30,8 +30,6 @@ import com.ca.capicturebackend.service.PictureService;
 import com.ca.capicturebackend.mapper.PictureMapper;
 import com.ca.capicturebackend.service.SpaceService;
 import com.ca.capicturebackend.service.UserService;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -85,16 +83,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private TransactionTemplate transactionTemplate;
-
-    /**
-     * 本地缓存
-     */
-    private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
-            .initialCapacity(1024)
-            .maximumSize(10_000L)
-            // 缓存 5 分钟移除
-            .expireAfterWrite(5L, TimeUnit.MINUTES)
-            .build();
 
     /**
      * 校验图片
@@ -241,10 +229,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
             return true;
         });
-        // 删除缓存
-        String cacheKeyPrefix = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
-        cacheManager.deleteRedisCacheByPrefix(cacheKeyPrefix);
-        cacheManager.deleteLocalCacheByPrefix(cacheKeyPrefix);
+        // 只有当上传公共图库的图片时，才删除主页缓存
+        if(oldPicture.getSpaceId() == null) {
+            String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+            cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
+            cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
+        }
         return PictureVO.objToVo(picture);
     }
 
@@ -490,7 +480,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         updatePicture.setReviewTime(new Date());
         boolean result = this.updateById(updatePicture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        // 删除缓存
+        // 删除主页缓存
         String cacheKeyPrefix = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
         cacheManager.deleteRedisCacheByPrefix(cacheKeyPrefix);
         cacheManager.deleteLocalCacheByPrefix(cacheKeyPrefix);
@@ -597,7 +587,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     /**
-     * 清理图片
+     * 清理对象图片文件
      *
      * @param oldPicture
      */
@@ -654,10 +644,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String queryCondition = String.valueOf(pictureId);
         String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
         String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
-        String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
         cacheManager.delete(pictureCacheKey);
-        cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
-        cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
+        // 只有当删除公共图库的图片时，才删除主页缓存
+        if(oldPicture.getSpaceId() == null) {
+            String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+            cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
+            cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
+        }
         // 异步清理文件
         this.clearPictureFile(oldPicture);
     }
@@ -695,10 +688,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String queryCondition = String.valueOf(id);
         String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
         String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
-        String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
         cacheManager.delete(pictureCacheKey);
-        cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
-        cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
+        // 只有当编辑公共图库的图片时，才删除主页缓存
+        if(oldPicture.getSpaceId() == null) {
+            String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
+            cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
+            cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
+        }
     }
 
     /**
@@ -734,6 +730,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         cosManager.deleteObjectByBatch(toDeleteUrlList);
     }
 
+    /**
+     * 从待删除的图片 URL 中提取出对象存储路径（key）
+     * @param toDeletePictureList
+     * @return
+     */
     @Override
     public List<String> pictureUrlToKey(List<ToDeletePictureDto> toDeletePictureList) {
         if (toDeletePictureList == null) return Collections.emptyList();
