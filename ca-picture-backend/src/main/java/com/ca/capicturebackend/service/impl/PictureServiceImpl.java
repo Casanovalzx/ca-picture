@@ -230,7 +230,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             return true;
         });
         // 只有当上传公共图库的图片时，才删除主页缓存
-        if(oldPicture.getSpaceId() == null) {
+        if(spaceId == null) {
             String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
             cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
             cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
