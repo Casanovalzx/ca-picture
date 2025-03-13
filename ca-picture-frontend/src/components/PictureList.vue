@@ -61,7 +61,11 @@
                 @click.stop="toggleSelect(picture.id)"
                 class="large-checkbox"
               />
-              <a-space @click="e => doEdit(picture, e)">
+              <a-space @click="(e) => doSearch(picture, e)">
+                <search-outlined />
+                搜索
+              </a-space>
+              <a-space @click="(e) => doEdit(picture, e)">
                 <edit-outlined />
                 编辑
               </a-space>
@@ -89,7 +93,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons-vue'
 
 interface Props {
   dataList?: API.PictureVO[]
@@ -113,6 +117,12 @@ const doClickPicture = (picture) => {
   router.push({
     path: `/picture/${picture.id}`
   })
+}
+
+// 搜索
+const doSearch = (picture, e) => {
+  e.stopPropagation()
+  window.open(`/search_picture?pictureId=${picture.id}`)
 }
 
 // 编辑
