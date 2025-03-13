@@ -1,8 +1,8 @@
 -- 创建数据库
-create database if not exists yu_picture;
+create database if not exists ca_picture;
 
 -- 切换库
-use yu_picture;
+use ca_picture;
 
 -- 用户表
 create table if not exists user
