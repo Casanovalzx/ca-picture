@@ -24,8 +24,8 @@ spring:
   # Session 配置
   session:
     store-type: redis
-    # session 30 天后过期
-    timeout: 2592000
+    # session 7 天后过期
+    timeout: 604800
   # 开放更大的文件上传体积
   servlet:
     multipart:
