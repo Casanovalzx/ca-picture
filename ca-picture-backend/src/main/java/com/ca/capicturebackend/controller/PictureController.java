@@ -290,6 +290,9 @@ public class PictureController {
 
     /**
      * 以图搜图
+     *
+     * @param searchPictureByPictureRequest
+     * @return
      */
     @PostMapping("/search/picture")
     public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
@@ -302,6 +305,13 @@ public class PictureController {
         return ResultUtils.success(resultList);
     }
 
+    /**
+     * 按颜色搜索图片
+     *
+     * @param searchPictureByColorRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/search/color")
     public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR);
