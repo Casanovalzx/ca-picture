@@ -31,6 +31,7 @@ import com.ca.capicturebackend.mapper.PictureMapper;
 import com.ca.capicturebackend.service.SpaceService;
 import com.ca.capicturebackend.service.UserService;
 import com.ca.capicturebackend.utils.ColorSimilarUtils;
+import com.ca.capicturebackend.utils.ColorTransfromUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -195,7 +196,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setPicHeight(uploadPictureResult.getPicHeight());
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
-        picture.setPicColor(uploadPictureResult.getPicColor());
+        picture.setPicColor(ColorTransfromUtils.getStandardColor(uploadPictureResult.getPicColor()));
         picture.setUserId(loginUser.getId());
         // 补充审核参数
         this.fillReviewParams(picture, loginUser);
