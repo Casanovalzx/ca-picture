@@ -1,12 +1,8 @@
 <template>
   <div class="picture-list">
     <!-- 批量操作区域 -->
-    <div v-if="showOp" style="margin-bottom: 16px; text-align: right;">
-      <a-checkbox
-        :checked="isAllSelected"
-        @change="toggleSelectAll"
-        style="margin-right: 16px;"
-      >
+    <div v-if="showOp" style="margin-bottom: 16px; text-align: right">
+      <a-checkbox :checked="isAllSelected" @change="toggleSelectAll" style="margin-right: 16px">
         全选
       </a-checkbox>
       <a-popconfirm
@@ -15,11 +11,7 @@
         cancel-text="取消"
         @confirm="handleBatchDelete"
       >
-        <a-button
-          type="primary"
-          danger
-          :disabled="selectedIds.length === 0"
-        >
+        <a-button type="primary" danger :disabled="selectedIds.length === 0">
           批量删除 ({{ selectedIds.length }})
         </a-button>
       </a-popconfirm>
@@ -61,14 +53,9 @@
                 @click.stop="toggleSelect(picture.id)"
                 class="large-checkbox"
               />
-              <a-space @click="(e) => doSearch(picture, e)">
-                <search-outlined />
-                搜索
-              </a-space>
-              <a-space @click="(e) => doEdit(picture, e)">
-                <edit-outlined />
-                编辑
-              </a-space>
+              <share-alt-outlined @click="(e) => doShare(picture, e)" />
+              <search-outlined @click="(e) => doSearch(picture, e)" />
+              <edit-outlined @click="(e) => doEdit(picture, e)" />
               <a-popconfirm
                 title="确定删除？"
                 ok-text="确定"
@@ -77,7 +64,6 @@
               >
                 <a-space @click.stop>
                   <delete-outlined />
-                  删除
                 </a-space>
               </a-popconfirm>
             </template>
@@ -85,6 +71,7 @@
         </a-list-item>
       </template>
     </a-list>
+    <ShareModal ref="shareModalRef" :link="shareLink" />
   </div>
 </template>
 
@@ -93,7 +80,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
-import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons-vue'
+import {
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  ShareAltOutlined,
+} from '@ant-design/icons-vue'
+import ShareModal from '@/components/ShareModal.vue'
 
 interface Props {
   dataList?: API.PictureVO[]
@@ -105,7 +98,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   dataList: () => [],
   loading: false,
-  showOp: false
+  showOp: false,
 })
 
 // 管理选中的图片 ID
@@ -115,8 +108,22 @@ const selectedIds = ref<string[]>([])
 const router = useRouter()
 const doClickPicture = (picture) => {
   router.push({
-    path: `/picture/${picture.id}`
+    path: `/picture/${picture.id}`,
   })
+}
+
+// 分享弹窗引用
+const shareModalRef = ref()
+// 分享链接
+const shareLink = ref<string>()
+
+// 分享
+const doShare = (picture: API.PictureVO, e: Event) => {
+  e.stopPropagation()
+  shareLink.value = `${window.location.protocol}//${window.location.host}/picture/${picture.id}`
+  if (shareModalRef.value) {
+    shareModalRef.value.openModal()
+  }
 }
 
 // 搜索
@@ -132,8 +139,8 @@ const doEdit = (picture, e) => {
     path: '/add_picture',
     query: {
       id: picture.id,
-      spaceId: picture.spaceId
-    }
+      spaceId: picture.spaceId,
+    },
   })
 }
 
@@ -146,7 +153,7 @@ const doDelete = async (picture) => {
     message.success('删除成功')
     props?.onReload()
     // 从选中列表中移除
-    selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
+    selectedIds.value = selectedIds.value.filter((selectedId) => selectedId !== id)
   } else {
     message.error('删除失败')
   }
@@ -155,20 +162,22 @@ const doDelete = async (picture) => {
 // 切换单张图片选中状态
 const toggleSelect = (id: string) => {
   if (selectedIds.value.includes(id)) {
-    selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
+    selectedIds.value = selectedIds.value.filter((selectedId) => selectedId !== id)
   } else {
     selectedIds.value.push(id)
   }
 }
 
 // 全选/取消全选
-const isAllSelected = computed(() =>
-  props.dataList.length > 0 && props.dataList.every(picture => selectedIds.value.includes(picture.id))
+const isAllSelected = computed(
+  () =>
+    props.dataList.length > 0 &&
+    props.dataList.every((picture) => selectedIds.value.includes(picture.id)),
 )
 
 const toggleSelectAll = (e) => {
   if (e.target.checked) {
-    selectedIds.value = props.dataList.map(picture => picture.id)
+    selectedIds.value = props.dataList.map((picture) => picture.id)
   } else {
     selectedIds.value = []
   }
@@ -178,11 +187,9 @@ const toggleSelectAll = (e) => {
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
 
-  const res = await Promise.all(
-    selectedIds.value.map(id => deletePictureUsingPost({ id }))
-  )
+  const res = await Promise.all(selectedIds.value.map((id) => deletePictureUsingPost({ id })))
 
-  const allSuccess = res.every(r => r.data.code === 0)
+  const allSuccess = res.every((r) => r.data.code === 0)
   if (allSuccess) {
     message.success(`成功删除 ${selectedIds.value.length} 张图片`)
     selectedIds.value = [] // 清空选中
