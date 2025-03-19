@@ -55,7 +55,7 @@
 
       <template v-else-if="column.key === 'action'">
         <a-space wrap>
-          <a-button @click="$router.push(`/add_space?id=${record.id}`)">
+          <a-button type="primary" ghost @click="$router.push(`/add_space?id=${record.id}`)">
             编辑
           </a-button>
           <a-popconfirm

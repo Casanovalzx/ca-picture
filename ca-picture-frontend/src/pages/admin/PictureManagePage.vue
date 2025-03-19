@@ -106,7 +106,7 @@
               拒绝
             </a-button>
           </a-popconfirm>
-          <a-button @click.prevent="$router.push(`/add_picture?id=${record.id}`)" type="default">
+          <a-button type="primary" ghost @click.prevent="$router.push(`/add_picture?id=${record.id}`)">
             编辑
           </a-button>
           <a-popconfirm

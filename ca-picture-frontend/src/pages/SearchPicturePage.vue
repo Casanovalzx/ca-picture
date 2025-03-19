@@ -16,6 +16,7 @@
     <a-list
       :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }"
       :data-source="dataList"
+      :loading="loading"
     >
       <template #renderItem="{ item }">
         <a-list-item style="padding: 0">
@@ -66,6 +67,7 @@ onMounted(() => {
   getOldPicture()
 })
 
+const loading = ref<boolean>(true)
 const dataList = ref<API.ImageSearchResult[]>([])
 // 获取搜图结果
 const fetchData = async () => {
@@ -74,6 +76,7 @@ const fetchData = async () => {
   })
   if (res.data.code === 0 && res.data.data) {
     dataList.value = res.data.data ?? []
+    loading.value = false
   } else {
     message.error('获取数据失败，' + res.data.message)
   }
