@@ -41,6 +41,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.DigestUtils;
 
@@ -50,6 +51,8 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -87,6 +90,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private TransactionTemplate transactionTemplate;
+
+    @Resource
+    private ThreadPoolExecutor customExecutor;
 
     /**
      * 校验图片
@@ -235,7 +241,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             return true;
         });
         // 只有当上传公共图库的图片时，才删除主页缓存
-        if(spaceId == null) {
+        if (spaceId == null) {
             String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
             cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
             cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
@@ -299,10 +305,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
         String cacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
         String lockKey = CommonKeyEnum.PICTURE_LOCK_PREFIX.key("getPictureVOWithCache", hashKey);
-        Picture picture =  cacheManager.queryWithCache(
+        Picture picture = cacheManager.queryWithCache(
                 cacheKey,
                 lockKey,
-                new TypeReference<Picture>() {}, // 这里动态指定类型
+                new TypeReference<Picture>() {
+                }, // 这里动态指定类型
                 () -> this.getById(id),
                 300,
                 120,
@@ -376,7 +383,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Page<Picture> picturePage = cacheManager.queryWithCache(
                 cacheKey,
                 lockKey,
-                new TypeReference<Page<Picture>>() {},
+                new TypeReference<Page<Picture>>() {
+                },
                 () -> this.page(new Page<>(current, size), this.getQueryWrapper(pictureQueryRequest)),
                 300,
                 120,
@@ -459,6 +467,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     /**
      * 图片审核
+     *
      * @param pictureReviewRequest
      * @param loginUser
      */
@@ -575,7 +584,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 上传图片
             PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
             pictureUploadRequest.setFileUrl(fileUrl);
-            pictureUploadRequest.setPicName(namePrefix + '_' + (uploadCount + 1));
+            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
             try {
                 PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功，id = {}", pictureVO.getId());
@@ -651,7 +660,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
         cacheManager.delete(pictureCacheKey);
         // 只有当删除公共图库的图片时，才删除主页缓存
-        if(oldPicture.getSpaceId() == null) {
+        if (oldPicture.getSpaceId() == null) {
             String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
             cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
             cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
@@ -695,7 +704,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
         cacheManager.delete(pictureCacheKey);
         // 只有当编辑公共图库的图片时，才删除主页缓存
-        if(oldPicture.getSpaceId() == null) {
+        if (oldPicture.getSpaceId() == null) {
             String homePageCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOPageWithCache", "");
             cacheManager.deleteRedisCacheByPrefix(homePageCacheKey);
             cacheManager.deleteLocalCacheByPrefix(homePageCacheKey);
@@ -755,6 +764,151 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
+        List<Long> pictureIdList = pictureEditByBatchRequest.getPictureIdList();
+        Long spaceId = pictureEditByBatchRequest.getSpaceId();
+        String category = pictureEditByBatchRequest.getCategory();
+        List<String> tags = pictureEditByBatchRequest.getTags();
+
+        // 1.参数校验
+        ThrowUtils.throwIf(spaceId == null || CollUtil.isEmpty(pictureIdList), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 2.空间权限校验
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!loginUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+        // 3.图片查询
+        List<Picture> pictureList = this.lambdaQuery()
+                .select(Picture::getId, Picture::getSpaceId)
+                .eq(Picture::getSpaceId, spaceId)
+                .in(Picture::getId, pictureIdList)
+                .list();
+        if (pictureList == null || pictureList.isEmpty()) {
+            return;
+        }
+        // 4.批量更新
+        pictureList.forEach(picture -> {
+            if (StrUtil.isNotBlank(category)) {
+                picture.setCategory(category);
+            }
+            if(CollUtil.isNotEmpty(tags)) {
+                picture.setTags(JSONUtil.toJsonStr(tags));
+            }
+        });
+        // 批量重命名
+        String nameRule = pictureEditByBatchRequest.getNameRule();
+        fillPictureWithNameRule(pictureList, nameRule);
+        boolean result = this.updateBatchById(pictureList);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量编辑失败");
+        // 删除对应图片缓存
+        for(Long pictureId : pictureIdList) {
+            String queryCondition = String.valueOf(pictureId);
+            String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+            String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+            cacheManager.delete(pictureCacheKey);
+        }
+    }
+
+    /**
+     * 异步批量编辑图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void editPictureByBatchAsync(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
+        List<Long> pictureIdList = pictureEditByBatchRequest.getPictureIdList();
+        Long spaceId = pictureEditByBatchRequest.getSpaceId();
+        String category = pictureEditByBatchRequest.getCategory();
+        List<String> tags = pictureEditByBatchRequest.getTags();
+
+        // 1.参数校验
+        ThrowUtils.throwIf(spaceId == null || CollUtil.isEmpty(pictureIdList), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 2.空间权限校验
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!loginUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+        // 3.图片查询
+        List<Picture> pictureList = this.lambdaQuery()
+                .select(Picture::getId, Picture::getSpaceId)
+                .eq(Picture::getSpaceId, spaceId)
+                .in(Picture::getId, pictureIdList)
+                .list();
+        if (pictureList == null || pictureList.isEmpty()) {
+            return;
+        }
+        // 分批处理避免长事务
+        int batchSize = 100;
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int i = 0; i < pictureList.size(); i += batchSize) {
+            List<Picture> batch = pictureList.subList(i, Math.min(i + batchSize, pictureList.size()));
+            // 异步处理每批数据
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                batch.forEach(picture -> {
+                    // 编辑分类和标签
+                    if (StrUtil.isNotBlank(category)) {
+                        picture.setCategory(category);
+                    }
+                    if(CollUtil.isNotEmpty(tags)) {
+                        picture.setTags(JSONUtil.toJsonStr(tags));
+                    }
+                });
+                // 批量重命名
+                String nameRule = pictureEditByBatchRequest.getNameRule();
+                fillPictureWithNameRule(pictureList, nameRule);
+                boolean result = this.updateBatchById(batch);
+                if (!result) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR, "批量更新图片失败");
+                }
+                // 删除对应图片缓存
+                batch.forEach(picture -> {
+                    String queryCondition = String.valueOf(picture.getId());
+                    String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+                    String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+                    cacheManager.delete(pictureCacheKey);
+                });
+            }, customExecutor);
+            futures.add(future);
+        }
+        // 等待所有任务完成
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    }
+
+    /**
+     * nameRule 格式：图片{序号}
+     *
+     * @param pictureList
+     * @param nameRule
+     */
+    private void fillPictureWithNameRule(List<Picture> pictureList, String nameRule) {
+        if (CollUtil.isEmpty(pictureList) || StrUtil.isBlank(nameRule)) {
+            return;
+        }
+        long count = 1;
+        try {
+            for (Picture picture : pictureList) {
+                String pictureName = nameRule.replaceAll("\\{序号}", String.valueOf(count++));
+                picture.setName(pictureName);
+            }
+        } catch (Exception e) {
+            log.error("名称解析错误", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "名称解析错误");
+        }
+    }
 
     /**
      * 校验空间图片的权限
@@ -791,6 +945,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     /**
      * 从待删除的图片 URL 中提取出对象存储路径（key）
+     *
      * @param toDeletePictureList
      * @return
      */

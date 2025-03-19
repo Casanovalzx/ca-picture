@@ -7,7 +7,9 @@ import com.ca.capicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ca.capicturebackend.model.entity.User;
 import com.ca.capicturebackend.model.vo.PictureVO;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -150,6 +152,22 @@ public interface PictureService extends IService<Picture> {
      * @return
      */
     List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    void editPictureByBatch(@Param("pictureEditByBatchRequest") PictureEditByBatchRequest pictureEditByBatchRequest, @Param("loginUser") User loginUser);
+
+    /**
+     * 异步批量编辑图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    void editPictureByBatchAsync(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
 
     /**
      * 校验空间图片的权限
