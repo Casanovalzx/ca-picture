@@ -17,6 +17,21 @@ export async function deletePictureUsingPost(
   })
 }
 
+/** deletePictureByBatch POST /api/picture/delete/batch */
+export async function deletePictureByBatchUsingPost(
+  body: API.DeletePictureByBatchRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/picture/delete/batch', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** deleteUselessPicture POST /api/picture/delete/useless */
 export async function deleteUselessPictureUsingPost(options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean_>('/api/picture/delete/useless', {
@@ -31,6 +46,21 @@ export async function editPictureUsingPost(
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResponseBoolean_>('/api/picture/edit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** editPictureByBatch POST /api/picture/edit/batch */
+export async function editPictureByBatchUsingPost(
+  body: API.PictureEditByBatchRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/picture/edit/batch', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
