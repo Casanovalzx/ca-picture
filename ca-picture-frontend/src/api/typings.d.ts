@@ -119,6 +119,11 @@ declare namespace API {
     message?: string
   }
 
+  type DeletePictureByBatchRequest = {
+    idList?: number[]
+    spaceId?: number
+  }
+
   type DeleteRequest = {
     id?: number
   }
@@ -239,6 +244,14 @@ declare namespace API {
     updateTime?: string
     url?: string
     userId?: number
+  }
+
+  type PictureEditByBatchRequest = {
+    category?: string
+    nameRule?: string
+    pictureIdList?: number[]
+    spaceId?: number
+    tags?: string[]
   }
 
   type PictureEditRequest = {

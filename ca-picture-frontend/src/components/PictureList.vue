@@ -1,21 +1,5 @@
 <template>
   <div class="picture-list">
-    <!-- 批量操作区域 -->
-    <div v-if="showOp" style="margin-bottom: 16px; text-align: right">
-      <a-checkbox :checked="isAllSelected" @change="toggleSelectAll" style="margin-right: 16px">
-        全选
-      </a-checkbox>
-      <a-popconfirm
-        title="确认删除选中的图片？"
-        ok-text="确定"
-        cancel-text="取消"
-        @confirm="handleBatchDelete"
-      >
-        <a-button type="primary" danger :disabled="selectedIds.length === 0">
-          批量删除 ({{ selectedIds.length }})
-        </a-button>
-      </a-popconfirm>
-    </div>
     <!-- 图片列表 -->
     <a-list
       :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }"
@@ -61,6 +45,7 @@
                 ok-text="确定"
                 cancel-text="取消"
                 @confirm="doDelete(picture)"
+                @cancel="cancelConfirm"
               >
                 <a-space @click.stop>
                   <delete-outlined />
@@ -76,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
@@ -101,9 +86,6 @@ const props = withDefaults(defineProps<Props>(), {
   showOp: false,
 })
 
-// 管理选中的图片 ID
-const selectedIds = ref<string[]>([])
-
 // 跳转至图片详情
 const router = useRouter()
 const doClickPicture = (picture) => {
@@ -112,6 +94,7 @@ const doClickPicture = (picture) => {
   })
 }
 
+// --------- 分享模块 ---------
 // 分享弹窗引用
 const shareModalRef = ref()
 // 分享链接
@@ -126,13 +109,13 @@ const doShare = (picture: API.PictureVO, e: Event) => {
   }
 }
 
-// 搜索
+// -------------- 搜索 -------------
 const doSearch = (picture, e) => {
   e.stopPropagation()
   window.open(`/search_picture?pictureId=${picture.id}`)
 }
 
-// 编辑
+// -------------- 编辑 ----------------
 const doEdit = (picture, e) => {
   e.stopPropagation()
   router.push({
@@ -159,7 +142,16 @@ const doDelete = async (picture) => {
   }
 }
 
-// 切换单张图片选中状态
+// 取消操作
+const cancelConfirm = (e: MouseEvent) => {
+  message.info('操作已取消')
+}
+
+
+// ----------- 监听复选框状态 ---------
+// 双向绑定 selectedIds
+const selectedIds = defineModel<string[]>('selectedIds', { default: [] })
+
 const toggleSelect = (id: string) => {
   if (selectedIds.value.includes(id)) {
     selectedIds.value = selectedIds.value.filter((selectedId) => selectedId !== id)
@@ -168,42 +160,6 @@ const toggleSelect = (id: string) => {
   }
 }
 
-// 全选/取消全选
-const isAllSelected = computed(
-  () =>
-    props.dataList.length > 0 &&
-    props.dataList.every((picture) => selectedIds.value.includes(picture.id)),
-)
-
-const toggleSelectAll = (e) => {
-  if (e.target.checked) {
-    selectedIds.value = props.dataList.map((picture) => picture.id)
-  } else {
-    selectedIds.value = []
-  }
-}
-
-// 批量删除
-const handleBatchDelete = async () => {
-  if (selectedIds.value.length === 0) return
-
-  const res = await Promise.all(selectedIds.value.map((id) => deletePictureUsingPost({ id })))
-
-  const allSuccess = res.every((r) => r.data.code === 0)
-  if (allSuccess) {
-    message.success(`成功删除 ${selectedIds.value.length} 张图片`)
-    selectedIds.value = [] // 清空选中
-    props?.onReload()
-  } else {
-    message.error('部分或全部删除失败')
-    props?.onReload() // 刷新列表以同步最新状态
-  }
-}
-
-// 取消操作（可选）
-const cancelConfirm = (e: MouseEvent) => {
-  message.info('操作已取消')
-}
 </script>
 
 <style scoped>
