@@ -322,11 +322,33 @@ public class PictureController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/edit/batch")
     public BaseResponse<Boolean> editPictureByBatch(@RequestBody PictureEditByBatchRequest pictureEditByBatchRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureEditByBatchRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 批量删除图片
+     *
+     * @param deletePictureByBatchRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete/batch")
+    public BaseResponse<Boolean> deletePictureByBatch(@RequestBody DeletePictureByBatchRequest deletePictureByBatchRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(deletePictureByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.deletePictureByBatch(deletePictureByBatchRequest, loginUser);
         return ResultUtils.success(true);
     }
 
