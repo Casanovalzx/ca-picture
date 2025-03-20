@@ -9,6 +9,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ca.capicturebackend.model.dto.picture.DeletePictureByBatchRequest;
 import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
@@ -670,6 +671,63 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     /**
+     * 删除图片
+     *
+     * @param deletePictureByBatchRequest
+     * @param loginUser
+     */
+    @Override
+    public void deletePictureByBatch(DeletePictureByBatchRequest deletePictureByBatchRequest, User loginUser) {
+        List<Long> pictureIdList = deletePictureByBatchRequest.getIdList();
+        Long spaceId = deletePictureByBatchRequest.getSpaceId();
+
+        // 1.参数校验
+        ThrowUtils.throwIf(spaceId == null || CollUtil.isEmpty(pictureIdList), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 2.空间权限校验
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!loginUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+        // 2.图片查询
+        List<Picture> pictureList = this.lambdaQuery()
+                .select(Picture::getId, Picture::getUserId, Picture::getPicSize,
+                        Picture::getUrl, Picture::getOriginalUrl, Picture::getThumbnailUrl)
+                .eq(Picture::getSpaceId, spaceId)
+                .in(Picture::getId, pictureIdList)
+                .list();
+        if (pictureList == null || pictureList.isEmpty()) {
+            return;
+        }
+        // 开启事务
+        transactionTemplate.execute(status -> {
+            // 4.操作数据库
+            boolean result = this.removeByIds(pictureIdList);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            // 5.释放额度
+            long totalPicSize = pictureList.stream().mapToLong(Picture::getPicSize).sum();
+            long totalPicCount = pictureList.size();
+            boolean update = spaceService.lambdaUpdate()
+                    .eq(Space::getId, spaceId)
+                    .setSql("totalSize = totalSize - " + totalPicSize)
+                    .setSql("totalCount = totalCount - " + totalPicCount)
+                    .update();
+            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            return true;
+        });
+        // 删除对应图片缓存和首页缓存
+        for(Picture picture : pictureList) {
+            String queryCondition = String.valueOf(picture.getId());
+            String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+            String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
+            cacheManager.delete(pictureCacheKey);
+            // 异步清理文件
+            this.clearPictureFile(picture);
+        }
+    }
+
+    /**
      * 编辑图片
      *
      * @param pictureEditRequest
@@ -801,7 +859,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             if (StrUtil.isNotBlank(category)) {
                 picture.setCategory(category);
             }
-            if(CollUtil.isNotEmpty(tags)) {
+            if (CollUtil.isNotEmpty(tags)) {
                 picture.setTags(JSONUtil.toJsonStr(tags));
             }
         });
@@ -811,7 +869,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         boolean result = this.updateBatchById(pictureList);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量编辑失败");
         // 删除对应图片缓存
-        for(Long pictureId : pictureIdList) {
+        for (Long pictureId : pictureIdList) {
             String queryCondition = String.valueOf(pictureId);
             String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
             String pictureCacheKey = CommonKeyEnum.PICTURE_CACHE_PREFIX.key("getPictureVOWithCache", hashKey);
@@ -863,7 +921,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                     if (StrUtil.isNotBlank(category)) {
                         picture.setCategory(category);
                     }
-                    if(CollUtil.isNotEmpty(tags)) {
+                    if (CollUtil.isNotEmpty(tags)) {
                         picture.setTags(JSONUtil.toJsonStr(tags));
                     }
                 });
