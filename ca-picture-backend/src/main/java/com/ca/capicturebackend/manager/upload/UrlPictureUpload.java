@@ -9,6 +9,7 @@ import cn.hutool.http.Method;
 import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -21,6 +22,7 @@ import java.util.List;
  * URL 图片上传
  */
 @Service
+@Slf4j
 public class UrlPictureUpload extends PictureUploadTemplate {
     @Override
     protected void validPicture(Object inputSource) {
@@ -64,6 +66,9 @@ public class UrlPictureUpload extends PictureUploadTemplate {
                     throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小格式化异常");
                 }
             }
+        } catch (Exception e) {
+            // 没必要报错，不需要影响图片上传只需要打印日志即可
+            log.error("文件 HEAD 校验失败  {}", e.getMessage());
         } finally {
             // 释放资源
             if (httpResponse != null) {
@@ -76,7 +81,14 @@ public class UrlPictureUpload extends PictureUploadTemplate {
     protected String getOriginFilename(Object inputSource) {
         String fileUrl = (String) inputSource;
         // 从 URL 中提取文件名
-        return FileUtil.getName(fileUrl);
+        String originFilename = FileUtil.getName(fileUrl);
+        // 去掉 URL 中的查询参数部分，保留文件名
+        int queryIndex = originFilename.indexOf("?");
+        if (queryIndex != -1) {
+            // 如果存在查询参数，截取文件名部分
+            originFilename = originFilename.substring(0, queryIndex);
+        }
+        return originFilename;
     }
 
     @Override
