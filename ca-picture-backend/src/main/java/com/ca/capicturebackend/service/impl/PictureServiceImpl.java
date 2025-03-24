@@ -999,7 +999,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Override
     @Scheduled(cron = "0 0 3 * * ?")
     public void regularClearPictureFile() {
-        List<ToDeletePictureDto> toDeletePicture = pictureMapper.findToDeletePicture();
+        List<ToDeletePictureDto> toDeletePicture = pictureMapper.getToDeletePicture();
         List<String> toDeleteUrlList = pictureUrlToKey(toDeletePicture);
         cosManager.deleteObjectByBatch(toDeleteUrlList);
     }

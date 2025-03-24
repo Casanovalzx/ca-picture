@@ -45,7 +45,7 @@
         <result property="thumbnailUrl" column="thumbnailUrl"/>
     </resultMap>
 
-    <select id="findToDeletePicture" resultMap="ToDeletePictureDtoMap">
+    <select id="getToDeletePicture" resultMap="ToDeletePictureDtoMap">
         select url, originalUrl, thumbnailUrl
         from picture
         where isDelete = 1

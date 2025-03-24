@@ -14,7 +14,7 @@ import java.util.List;
 */
 public interface PictureMapper extends BaseMapper<Picture> {
 
-    List<ToDeletePictureDto> findToDeletePicture();
+    List<ToDeletePictureDto> getToDeletePicture();
 }
 
 
