@@ -17,6 +17,15 @@
           + 创建图片
         </a-button>
         <a-button
+          type="primary"
+          ghost
+          :icon="h(BarChartOutlined)"
+          :href="`/space_analyze?spaceId=${id}`"
+          target="_blank"
+        >
+          空间分析
+        </a-button>
+        <a-button
           :icon="h(EditOutlined)"
           @click="doBatchEdit"
           :disabled="selectedPictureIds.length === 0"
@@ -49,11 +58,11 @@
     </a-form-item>
     <!-- 图片列表 -->
     <PictureList
-        :dataList="dataList"
-        :loading="loading"
-        showOp
-        :onReload="fetchData"
-        v-model:selected-ids="selectedPictureIds"
+      :dataList="dataList"
+      :loading="loading"
+      showOp
+      :onReload="fetchData"
+      v-model:selected-ids="selectedPictureIds"
     />
     <!-- 分页 -->
     <a-pagination
@@ -81,14 +90,14 @@ import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
 import {
   deletePictureByBatchUsingPost,
   listPictureVoByPageUsingPost,
-  searchPictureByColorUsingPost
+  searchPictureByColorUsingPost,
 } from '@/api/pictureController.ts'
 import { ColorPicker } from 'vue3-colorpicker'
 import 'vue3-colorpicker/style.css'
 import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
-import { EditOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, BarChartOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps<{
   id: string | number
@@ -192,7 +201,7 @@ const selectedPictureIds = ref<string[]>([])
 
 // 计算属性：根据 selectedPictureIds 过滤出选中的图片
 const selectedPictures = computed(() => {
-  return dataList.value.filter(picture => selectedPictureIds.value.includes(picture.id))
+  return dataList.value.filter((picture) => selectedPictureIds.value.includes(picture.id))
 })
 
 // 监听 PictureList 传来的选中项变化
@@ -231,19 +240,19 @@ const handleBatchDelete = async () => {
 
 // 全选状态
 const isAllSelected = computed(
-  () => dataList.value.length > 0 && dataList.value.every(picture => selectedPictureIds.value.includes(picture.id))
+  () =>
+    dataList.value.length > 0 &&
+    dataList.value.every((picture) => selectedPictureIds.value.includes(picture.id)),
 )
-
 
 // 全选/取消全选
 const toggleSelectAll = (e) => {
   if (e.target.checked) {
-    selectedPictureIds.value = dataList.value.map(picture => picture.id)
+    selectedPictureIds.value = dataList.value.map((picture) => picture.id)
   } else {
     selectedPictureIds.value = []
   }
 }
-
 </script>
 
 <style scoped></style>

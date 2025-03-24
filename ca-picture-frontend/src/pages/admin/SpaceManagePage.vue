@@ -4,6 +4,12 @@
     <h2>空间管理</h2>
     <a-space>
       <a-button type="primary" @click="$router.push('/add_space')">+ 创建空间</a-button>
+      <a-button type="primary" ghost @click="$router.push('/space_analyze?queryPublic=1')">
+        分析公共图库
+      </a-button>
+      <a-button type="primary" ghost @click="$router.push('/space_analyze?queryAll=1')">
+        分析全空间
+      </a-button>
     </a-space>
   </a-flex>
   <div style="margin-bottom: 16px" />
@@ -65,9 +71,7 @@
             @confirm="doDelete(record.id)"
             @cancel="cancelConfirm"
           >
-            <a-button type="primary" danger>
-              删除
-            </a-button>
+            <a-button type="primary" danger> 删除</a-button>
           </a-popconfirm>
         </a-space>
       </template>
@@ -76,10 +80,7 @@
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import {
-  deleteSpaceUsingPost,
-  listSpaceByPageUsingPost
-} from '@/api/spaceController.ts'
+import { deleteSpaceUsingPost, listSpaceByPageUsingPost } from '@/api/spaceController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { SPACE_LEVEL_MAP, SPACE_LEVEL_OPTIONS } from '../../constants/space.ts'
@@ -89,37 +90,37 @@ const columns = [
   {
     title: 'id',
     dataIndex: 'id',
-    width: 80
+    width: 80,
   },
   {
     title: '空间名称',
-    dataIndex: 'spaceName'
+    dataIndex: 'spaceName',
   },
   {
     title: '空间级别',
-    dataIndex: 'spaceLevel'
+    dataIndex: 'spaceLevel',
   },
   {
     title: '使用情况',
-    dataIndex: 'spaceUseInfo'
+    dataIndex: 'spaceUseInfo',
   },
   {
     title: '用户 id',
     dataIndex: 'userId',
-    width: 80
+    width: 80,
   },
   {
     title: '创建时间',
-    dataIndex: 'createTime'
+    dataIndex: 'createTime',
   },
   {
     title: '编辑时间',
-    dataIndex: 'editTime'
+    dataIndex: 'editTime',
   },
   {
     title: '操作',
-    key: 'action'
-  }
+    key: 'action',
+  },
 ]
 
 // 数据
@@ -131,7 +132,7 @@ const searchParams = reactive<API.SpaceQueryRequest>({
   current: 1,
   pageSize: 10,
   sortField: 'createTime',
-  sortOrder: 'descend'
+  sortOrder: 'descend',
 })
 
 // 分页参数
@@ -141,14 +142,14 @@ const pagination = computed(() => {
     pageSize: searchParams.pageSize ?? 10,
     total: total.value,
     showSizeChanger: true,
-    showTotal: (total) => `共 ${total} 条`
+    showTotal: (total) => `共 ${total} 条`,
   }
 })
 
 // 获取数据
 const fetchData = async () => {
   const res = await listSpaceByPageUsingPost({
-    ...searchParams
+    ...searchParams,
   })
   if (res.data.data) {
     dataList.value = res.data.data.records ?? []
@@ -195,5 +196,4 @@ const doDelete = async (id: string) => {
     message.error('删除失败')
   }
 }
-
 </script>
