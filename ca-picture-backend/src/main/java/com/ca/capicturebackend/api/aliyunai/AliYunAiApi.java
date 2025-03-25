@@ -5,6 +5,7 @@ import cn.hutool.http.ContentType;
 import cn.hutool.http.Header;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.ca.capicturebackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
 import com.ca.capicturebackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
@@ -48,7 +49,14 @@ public class AliYunAiApi {
         try (HttpResponse httpResponse = httpRequest.execute()) {
             if (!httpResponse.isOk()) {
                 log.error("请求异常：{}", httpResponse.body());
-                throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 扩图失败");
+                String errorMessage = "";
+                try {
+                    JSONObject jsonObject = JSONUtil.parseObj(httpResponse.body());
+                    errorMessage = jsonObject.getStr("message") == null ? "" : "：" + jsonObject.getStr("message");
+                } catch (Exception e) {
+                    log.error(String.valueOf(e));
+                }
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 扩图失败" + errorMessage);
             }
             CreateOutPaintingTaskResponse response = JSONUtil.toBean(httpResponse.body(), CreateOutPaintingTaskResponse.class);
             String errorCode = response.getCode();
