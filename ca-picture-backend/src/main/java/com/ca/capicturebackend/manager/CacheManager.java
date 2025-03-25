@@ -149,7 +149,17 @@ public class CacheManager {
     }
 
     /**
-     * 批量删除符合前缀的 Key 的缓存
+     * 批量删除符合前缀的本地缓存和Redis缓存
+     *
+     * @param prefix
+     */
+    public void deleteCacheByPrefix(String prefix) {
+        deleteRedisCacheByPrefix(prefix);
+        deleteLocalCacheByPrefix(prefix);
+    }
+
+    /**
+     * 批量删除符合前缀的Redis缓存
      *
      * @param prefix
      */
@@ -187,6 +197,11 @@ public class CacheManager {
         }
     }
 
+    /**
+     * 批量删除符合前缀的本地缓存
+     *
+     * @param prefix
+     */
     public void deleteLocalCacheByPrefix(String prefix) {
         // 获取所有键
         Set<String> keys = LOCAL_CACHE.asMap().keySet();
