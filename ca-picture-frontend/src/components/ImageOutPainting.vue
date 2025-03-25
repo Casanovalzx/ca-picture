@@ -9,11 +9,11 @@
     <a-row gutter="16">
       <a-col span="12">
         <h4>原始图片</h4>
-        <img :src="picture?.url" :alt="picture?.name" style="max-width: 100%" />
+        <a-image :src="picture?.url" :alt="picture?.name" style="max-width: 100%" />
       </a-col>
       <a-col span="12">
         <h4>扩图结果</h4>
-        <img
+        <a-img
           v-if="resultImageUrl"
           :src="resultImageUrl"
           :alt="picture?.name"
@@ -24,7 +24,12 @@
     <div style="margin-bottom: 16px" />
     <a-flex gap="16" justify="center">
       <a-button type="primary" :loading="!!taskId" ghost @click="createTask"> 生成图片</a-button>
-      <a-button type="primary" :disabled="!resultImageUrl" :loading="uploadLoading" @click="handleUpload">
+      <a-button
+        type="primary"
+        :disabled="!resultImageUrl"
+        :loading="uploadLoading"
+        @click="handleUpload"
+      >
         应用结果
       </a-button>
     </a-flex>
@@ -35,7 +40,8 @@
 import { onUnmounted, ref } from 'vue'
 import {
   createPictureOutPaintingTaskUsingPost,
-  getPictureOutPaintingTaskUsingGet, uploadPictureByUrlUsingPost
+  getPictureOutPaintingTaskUsingGet,
+  uploadPictureByUrlUsingPost,
 } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 
@@ -126,7 +132,7 @@ const startPolling = () => {
           resultImageUrl.value = taskResult.outputImageUrl
           clearPolling()
         } else if (taskResult.taskStatus === 'FAILED') {
-          message.error('扩图任务失败')
+          message.error('扩图任务失败：' + taskResult.message)
           clearPolling()
         }
       }
