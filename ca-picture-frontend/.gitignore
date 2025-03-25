@@ -1,3 +1,6 @@
+# Personal config
+src/request.ts
+
 # Logs
 logs
 *.log
