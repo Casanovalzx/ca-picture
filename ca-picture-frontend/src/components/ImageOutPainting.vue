@@ -13,7 +13,7 @@
       </a-col>
       <a-col span="12">
         <h4>扩图结果</h4>
-        <a-img
+        <a-image
           v-if="resultImageUrl"
           :src="resultImageUrl"
           :alt="picture?.name"

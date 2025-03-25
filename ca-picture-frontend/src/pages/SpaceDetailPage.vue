@@ -20,8 +20,7 @@
           type="primary"
           ghost
           :icon="h(BarChartOutlined)"
-          :href="`/space_analyze?spaceId=${id}`"
-          target="_blank"
+          @click="$router.push(`/space_analyze?spaceId=${id}`)"
         >
           空间分析
         </a-button>
