@@ -12,6 +12,7 @@ import com.ca.capicturebackend.exception.BusinessException;
 import com.ca.capicturebackend.exception.ErrorCode;
 import com.ca.capicturebackend.exception.ThrowUtils;
 import com.ca.capicturebackend.manager.CosManager;
+import com.ca.capicturebackend.manager.auth.SpaceUserAuthManager;
 import com.ca.capicturebackend.model.dto.picture.ToDeletePictureDto;
 import com.ca.capicturebackend.model.dto.space.*;
 import com.ca.capicturebackend.model.entity.Picture;
@@ -50,6 +51,9 @@ public class SpaceController {
 
     @Resource
     private CosManager cosManager;
+
+    @Resource
+    private SpaceUserAuthManager spaceUserAuthManager;
 
     /**
      * 创建空间
@@ -150,13 +154,12 @@ public class SpaceController {
         // 查询数据库
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人可获取该空间信息
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
         User loginUser = userService.getLoginUser(request);
-        if (!space.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
+        spaceVO.setPermissionList(permissionList);
         // 获取封装类
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        return ResultUtils.success(spaceVO);
     }
 
     /**

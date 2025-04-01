@@ -42,15 +42,6 @@ public interface PictureService extends IService<Picture> {
                             User loginUser);
 
     /**
-     * 获取图片实体类（单条）
-     *
-     * @param id
-     * @param request
-     * @return
-     */
-    Picture getPicture(long id, HttpServletRequest request);
-
-    /**
      * 获取图片包装类（单条）
      *
      * @param picture

@@ -20,5 +20,10 @@ public class SpaceAddRequest implements Serializable {
      */
     private Integer spaceLevel;
 
+    /**
+     * 空间类型：0-个人空间 1-团队空间
+     */
+    private Integer spaceType;
+
     private static final long serialVersionUID = 1L;
 }
