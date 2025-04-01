@@ -33,24 +33,33 @@
             <template v-if="showOp" #actions>
               <!-- 复选框 -->
               <a-checkbox
+                v-if="canEdit || canDelete"
                 :checked="selectedIds.includes(picture.id)"
                 @click.stop="toggleSelect(picture.id)"
                 class="large-checkbox"
               />
-              <share-alt-outlined @click="(e) => doShare(picture, e)" />
-              <search-outlined @click="(e) => doSearch(picture, e)" />
-              <edit-outlined @click="(e) => doEdit(picture, e)" />
-              <a-popconfirm
-                title="确定删除？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm="doDelete(picture)"
-                @cancel="cancelConfirm"
-              >
-                <a-space @click.stop>
-                  <delete-outlined />
-                </a-space>
-              </a-popconfirm>
+              <a-tooltip title="分享">
+                <share-alt-outlined @click="(e) => doShare(picture, e)" />
+              </a-tooltip>
+              <a-tooltip title="以图搜图">
+                <search-outlined @click="(e) => doSearch(picture, e)" />
+              </a-tooltip>
+              <a-tooltip title="编辑" v-if="canEdit">
+                <edit-outlined @click="(e) => doEdit(picture, e)" />
+              </a-tooltip>
+              <a-tooltip title="删除" v-if="canDelete">
+                <a-popconfirm
+                  title="确定删除？"
+                  ok-text="确定"
+                  cancel-text="取消"
+                  @confirm="doDelete(picture)"
+                  @cancel="cancelConfirm"
+                >
+                  <a-space @click.stop>
+                    <delete-outlined />
+                  </a-space>
+                </a-popconfirm>
+              </a-tooltip>
             </template>
           </a-card>
         </a-list-item>
@@ -77,6 +86,8 @@ interface Props {
   dataList?: API.PictureVO[]
   loading?: boolean
   showOp?: boolean
+  canEdit?: boolean
+  canDelete?: boolean
   onReload?: () => void
 }
 
@@ -84,6 +95,8 @@ const props = withDefaults(defineProps<Props>(), {
   dataList: () => [],
   loading: false,
   showOp: false,
+  canEdit: false,
+  canDelete: false,
 })
 
 // 跳转至图片详情
@@ -147,7 +160,6 @@ const cancelConfirm = (e: MouseEvent) => {
   message.info('操作已取消')
 }
 
-
 // ----------- 监听复选框状态 ---------
 // 双向绑定 selectedIds
 const selectedIds = defineModel<string[]>('selectedIds', { default: [] })
@@ -159,7 +171,6 @@ const toggleSelect = (id: string) => {
     selectedIds.value.push(id)
   }
 }
-
 </script>
 
 <style scoped>

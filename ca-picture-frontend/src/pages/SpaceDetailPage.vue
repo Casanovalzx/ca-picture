@@ -2,7 +2,7 @@
   <div id="spaceDetailPage">
     <!-- 空间信息 -->
     <a-flex justify="space-between">
-      <h2>{{ space.spaceName }}（私有空间）</h2>
+      <h2>{{ space.spaceName }}（{{ SPACE_TYPE_MAP[space.spaceType] }}）</h2>
       <a-space size="middle">
         <a-tooltip
           :title="`占用空间 ${formatSize(space.totalSize)} / ${formatSize(space.maxSize)}`"
@@ -13,10 +13,20 @@
             :size="42"
           />
         </a-tooltip>
-        <a-button type="primary" @click="$router.push(`/add_picture?spaceId=${id}`)">
+        <a-button v-if="canUploadPicture" type="primary" @click="$router.push(`/add_picture?spaceId=${id}`)">
           + 创建图片
         </a-button>
         <a-button
+          v-if="canManageSpaceUser"
+          type="primary"
+          ghost
+          :icon="h(TeamOutlined)"
+          @click="$router.push(`/spaceUserManage/${id}`)"
+        >
+          成员管理
+        </a-button>
+        <a-button
+          v-if="canManageSpaceUser"
           type="primary"
           ghost
           :icon="h(BarChartOutlined)"
@@ -25,6 +35,7 @@
           空间分析
         </a-button>
         <a-button
+          v-if="canEditPicture"
           :icon="h(EditOutlined)"
           @click="doBatchEdit"
           :disabled="selectedPictureIds.length === 0"
@@ -32,6 +43,7 @@
           批量编辑 ({{ selectedPictureIds.length }})
         </a-button>
         <a-popconfirm
+          v-if="canEditPicture"
           title="确认删除选中的图片？"
           ok-text="确定"
           cancel-text="取消"
@@ -42,7 +54,7 @@
             批量删除 ({{ selectedPictureIds.length }})
           </a-button>
         </a-popconfirm>
-        <a-checkbox :checked="isAllSelected" @change="toggleSelectAll" style="margin-right: 16px">
+        <a-checkbox v-if="canEditPicture || canDeletePicture" :checked="isAllSelected" @change="toggleSelectAll" style="margin-right: 16px">
           全选
         </a-checkbox>
       </a-space>
@@ -59,8 +71,10 @@
     <PictureList
       :dataList="dataList"
       :loading="loading"
-      showOp
+      :showOp="true"
       :onReload="fetchData"
+      :canEdit="canEditPicture"
+      :canDelete="canDeletePicture"
       v-model:selected-ids="selectedPictureIds"
     />
     <!-- 分页 -->
@@ -82,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { formatSize } from '@/utils'
 import { getSpaceVoByIdUsingGet } from '@/api/spaceController.ts'
@@ -96,12 +110,26 @@ import 'vue3-colorpicker/style.css'
 import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
-import { EditOutlined, BarChartOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, BarChartOutlined, TeamOutlined } from '@ant-design/icons-vue'
+import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '../constants/space.ts'
 
 const props = defineProps<{
   id: string | number
 }>()
 const space = ref<API.SpaceVO>({})
+
+// 通用权限检查函数
+function createPermissionChecker(permission: string) {
+  return computed(() => {
+    return (space.value.permissionList ?? []).includes(permission)
+  })
+}
+
+// 定义权限检查
+const canManageSpaceUser = createPermissionChecker(SPACE_PERMISSION_ENUM.SPACE_USER_MANAGE)
+const canUploadPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_UPLOAD)
+const canEditPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_EDIT)
+const canDeletePicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 
 // 获取空间详情
 const fetchSpaceDetail = async () => {
@@ -252,6 +280,14 @@ const toggleSelectAll = (e) => {
     selectedPictureIds.value = []
   }
 }
+
+watch(
+  () => props.id,
+  (newSpaceId) => {
+    fetchSpaceDetail()
+    fetchData()
+  },
+)
 </script>
 
 <style scoped></style>
