@@ -16,8 +16,8 @@
       <a-tab-pane v-for="category in categoryList" :key="category" :tab="category" />
     </a-tabs>
     <div class="tag-bar">
-      <span style="margin-right: 8px">标签：</span>
       <a-space :size="[0, 8]" wrap>
+        <span style="margin-right: 8px">标签：</span>
         <a-checkable-tag
           v-for="(tag, index) in tagList"
           :key="tag"
@@ -45,7 +45,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import {
   listPictureTagCategoryUsingGet,
   listPictureVoByPageUsingPost,
-  listPictureVoByPageWithCacheUsingPost
+  listPictureVoByPageWithCacheUsingPost,
 } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
@@ -61,7 +61,7 @@ const searchParams = reactive<API.PictureQueryRequest>({
   current: 1,
   pageSize: 12,
   sortField: 'createTime',
-  sortOrder: 'descend'
+  sortOrder: 'descend',
 })
 
 // 搜索
@@ -106,7 +106,7 @@ const fetchData = async () => {
   // 转换搜索参数
   const params = {
     ...searchParams,
-    tags: []
+    tags: [],
   }
   if (selectedCategory.value !== 'all') {
     params.category = selectedCategory.value
@@ -130,7 +130,6 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
 })
-
 </script>
 
 <style scoped>
@@ -146,5 +145,4 @@ onMounted(() => {
 .tag-bar {
   margin-bottom: 32px;
 }
-
 </style>

@@ -204,7 +204,7 @@ const columns = [
   },
   {
     title: '用户 id',
-    dataIndex: 'pictureId',
+    dataIndex: 'userId',
     width: 80,
   },
   {
