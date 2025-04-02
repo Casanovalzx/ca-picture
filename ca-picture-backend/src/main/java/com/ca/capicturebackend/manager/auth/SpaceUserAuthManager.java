@@ -63,11 +63,11 @@ public class SpaceUserAuthManager {
         }
         // 管理员权限
         List<String> ADMIN_PERMISSIONS = getPermissionsByRole(SpaceRoleEnum.ADMIN.getValue());
+        if (userService.isAdmin(loginUser)) {
+            return ADMIN_PERMISSIONS;
+        }
         // 公共图库
         if (space == null) {
-            if (userService.isAdmin(loginUser)) {
-                return ADMIN_PERMISSIONS;
-            }
             return new ArrayList<>();
         }
         SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getEnumByValue(space.getSpaceType());

@@ -80,6 +80,10 @@ public class StpInterfaceImpl implements StpInterface {
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "用户未登录");
         }
+        // 如果是管理员则直接返回管理员权限
+        if (userService.isAdmin(loginUser)) {
+            return ADMIN_PERMISSIONS;
+        }
         Long userId = loginUser.getId();
         // 优先从上下文中获取 SpaceUser 对象
         SpaceUser spaceUser = authContext.getSpaceUser();
