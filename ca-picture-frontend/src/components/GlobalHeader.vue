@@ -5,7 +5,7 @@
         <RouterLink to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.png" alt="logo" />
-            <div class="title">卡卡云图库</div>
+            <div class="title">卡卡梗图</div>
           </div>
         </RouterLink>
       </a-col>

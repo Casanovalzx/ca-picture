@@ -17,7 +17,7 @@
           + 创建图片
         </a-button>
         <a-button
-          v-if="canManageSpaceUser"
+          v-if="canManageSpaceUser && SPACE_TYPE_ENUM.TEAM == space.spaceType"
           type="primary"
           ghost
           :icon="h(TeamOutlined)"
@@ -111,7 +111,7 @@ import PictureList from '@/components/PictureList.vue'
 import PictureSearchForm from '@/components/PictureSearchForm.vue'
 import BatchEditPictureModal from '@/components/BatchEditPictureModal.vue'
 import { EditOutlined, BarChartOutlined, TeamOutlined } from '@ant-design/icons-vue'
-import { SPACE_PERMISSION_ENUM, SPACE_TYPE_MAP } from '../constants/space.ts'
+import { SPACE_PERMISSION_ENUM, SPACE_TYPE_ENUM, SPACE_TYPE_MAP } from '../constants/space.ts'
 
 const props = defineProps<{
   id: string | number

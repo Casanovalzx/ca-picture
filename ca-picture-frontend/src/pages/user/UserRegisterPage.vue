@@ -1,6 +1,6 @@
 <template>
   <div id="userRegisterPage">
-    <h2 class="title">卡卡云图库 - 用户注册</h2>
+    <h2 class="title">卡卡梗图 - 用户注册</h2>
     <div class="desc">智能协同云图库</div>
     <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
       <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
