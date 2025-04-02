@@ -87,17 +87,17 @@ public class SpaceController {
         User loginUser = userService.getLoginUser(request);
         Long spaceId = deleteRequest.getId();
         spaceService.deleteSpace(spaceId, loginUser);
-        // 删除对象存储中对应空间的图片
+        // 清理图片表中的数据
         QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("spaceId", spaceId);
         List<Picture> toDeletePicture = pictureService.list(queryWrapper);
+        pictureService.removeByIds(toDeletePicture);
+        // 删除对象存储中对应空间的图片
         List<ToDeletePictureDto> toDeletePictureDtoList = toDeletePicture.stream()
                 .map(ToDeletePictureDto::pictureToDeletePicture)
                 .collect(Collectors.toList());
         List<String> toDeleteUrlList = pictureService.pictureUrlToKey(toDeletePictureDtoList);
         cosManager.deleteObjectByBatch(toDeleteUrlList);
-        // 删除图片表中对应的图片
-        pictureService.removeByIds(toDeletePicture);
         return ResultUtils.success(true);
     }
 

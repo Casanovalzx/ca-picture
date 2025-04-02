@@ -154,6 +154,12 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 操作数据库
         boolean result = this.removeById(spaceId);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 删除空间成员表的数据（如果是团队空间）
+        if(oldSpace.getSpaceType() == SpaceTypeEnum.TEAM.getValue()){
+            QueryWrapper<SpaceUser> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("spaceId", oldSpace.getId());
+            spaceUserService.remove(queryWrapper);
+        }
     }
 
     /**
