@@ -449,7 +449,7 @@ public class PictureController {
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();
         List<String> tagList = Arrays.asList("幽默", "可爱", "动漫", "电影", "电视剧", "聊天斗图", "吐槽", "地狱", "冷", "励志", "像素风", "饭圈", "程序员", "学生党");
-        List<String> categoryList = Arrays.asList("搞笑", "抽象", "影视", "游戏", "职场", "二次元", "学习");
+        List<String> categoryList = Arrays.asList("搞笑", "表情包", "抽象", "影视", "游戏", "职场", "二次元", "学习");
         pictureTagCategory.setTagList(tagList);
         pictureTagCategory.setCategoryList(categoryList);
         return ResultUtils.success(pictureTagCategory);
