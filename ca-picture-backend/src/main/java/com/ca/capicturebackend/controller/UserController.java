@@ -133,11 +133,15 @@ public class UserController {
         Long userId = deleteRequest.getId();
         User loginUser = userService.getLoginUser(request);
         userService.deleteUser(userId, loginUser);
-        // 获取该用户对应的空间，并删除对应空间
+        // 获取该用户所创建的空间，并删除对应空间
         QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userId", userId);
-        Space toDeleteSpace = spaceService.getOne(queryWrapper);
-        spaceService.deleteSpace(toDeleteSpace.getId(), loginUser);
+        List<Space> list = spaceService.list(queryWrapper);
+        if (list != null || !list.isEmpty()) {
+            for (Space space : list) {
+                spaceService.deleteSpace(space.getId(), loginUser);
+            }
+        }
         return ResultUtils.success(true);
     }
 
