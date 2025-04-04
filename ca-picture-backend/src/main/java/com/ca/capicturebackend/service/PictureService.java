@@ -178,11 +178,12 @@ public interface PictureService extends IService<Picture> {
     CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 
     /**
-     * 校验空间图片的权限
+     * 校验空间图片的权限（已改为注解鉴权）
      *
      * @param loginUser
      * @param picture
      */
+    @Deprecated
     void checkPictureAuth(User loginUser, Picture picture);
 
     /**
