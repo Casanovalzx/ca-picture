@@ -162,6 +162,23 @@ public class UserController {
     }
 
     /**
+     * 重置用户密码（仅管理员可用）
+     */
+    @PostMapping("/update/password")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> userUpdatePassword(@RequestBody UserUpdatePasswordRequest userUpdatePasswordRequest,
+                                                HttpServletRequest request) {
+        ThrowUtils.throwIf(userUpdatePasswordRequest == null, ErrorCode.PARAMS_ERROR);
+        Long userId = userUpdatePasswordRequest.getUserId();
+        String userPassword = userUpdatePasswordRequest.getUserPassword();
+        String checkPassword = userUpdatePasswordRequest.getCheckPassword();
+        userService.updateUserPassword(userId, userPassword, checkPassword);
+        // 修改完密码后要让用户退出登录
+        userService.userLogout(request);
+        return ResultUtils.success(true);
+    }
+
+    /**
      * 分页获取用户封装列表（仅管理员）
      *
      * @param userQueryRequest 查询请求参数
