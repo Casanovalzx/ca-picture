@@ -91,6 +91,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return user.getId();
     }
 
+    /**
+     * 用户重置密码
+     *
+     * @param userId        用户 id
+     * @param userPassword  用户密码
+     * @param checkPassword 校验密码
+     * @return
+     */
+    @Override
+    public void updateUserPassword(long userId, String userPassword, String checkPassword) {
+        // 1. 校验参数
+        if (StrUtil.hasBlank(userPassword, checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        if (userPassword.length() < 8 || checkPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+        if (!userPassword.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+        }
+
+        // 2. 检查用户是否存在
+        User oldUser = getById(userId);
+        ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+
+        // 3. 密码加密
+        String encryptPassword = getEncryptPassword(userPassword);
+
+        // 4. 更新数据库
+        User user = new User();
+        user.setId(userId);
+        user.setUserPassword(encryptPassword);
+        boolean saveResult = this.updateById(user);
+        if (!saveResult) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新密码失败，数据库错误");
+        }
+    }
+
     @Override
     public void deleteUser(long userId, User loginUser) {
         transactionTemplate.execute(status -> {

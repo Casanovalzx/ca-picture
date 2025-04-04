@@ -1,7 +1,6 @@
 package com.ca.capicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ca.capicturebackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.ca.capicturebackend.model.dto.user.UserQueryRequest;
 import com.ca.capicturebackend.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -27,6 +26,16 @@ public interface UserService extends IService<User> {
      * @return 新用户 id
      */
     long userRegister(String userAccount, String userPassword, String checkPassword);
+
+    /**
+     * 用户更新密码
+     *
+     * @param userId
+     * @param userPassword
+     * @param checkPassword
+     * @return
+     */
+    void updateUserPassword(long userId, String userPassword, String checkPassword);
 
     /**
      * 删除用户
@@ -110,7 +119,5 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean isAdmin(User user);
-
-
 
 }
