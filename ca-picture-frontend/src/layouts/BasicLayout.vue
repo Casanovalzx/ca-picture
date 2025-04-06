@@ -12,6 +12,7 @@
       </a-layout>
       <a-layout-footer class="footer">
         <a href="https://github.com/Casanovalzx" target="_blank"> 关于作者 </a>
+        <GlobalPopup />
       </a-layout-footer>
     </a-layout>
   </div>
@@ -20,6 +21,7 @@
 <script setup lang="ts">
 import GlobalHeader from '@/components/GlobalHeader.vue'
 import GlobalSider from '@/components/GlobalSider.vue'
+import GlobalPopup from '@/components/GlobalPopup.vue' // 引入 GlobalPopup 组件
 </script>
 
 <style scoped>
@@ -58,4 +60,8 @@ import GlobalSider from '@/components/GlobalSider.vue'
   background: #1677FF;
 }
 
+/* 可选：调整 GlobalPopup 的样式，确保不被 footer 遮挡 */
+:deep(.popup-overlay) {
+  z-index: 1000; /* 确保弹窗在 footer 之上 */
+}
 </style>
