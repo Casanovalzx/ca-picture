@@ -169,21 +169,38 @@ const canEdit = computed(() => {
 })
 
 let websocket: PictureEditWebSocket | null
+let lastConnectTime = 0
+const CONNECT_INTERVAL = 1000 // 1秒
 
 // 初始化 WebSocket 连接，绑定事件
 const initWebsocket = () => {
+  // 节流，避免连接过于频繁
+  const now = Date.now()
+  if (now - lastConnectTime < CONNECT_INTERVAL) {
+    console.warn('连接过快，已忽略')
+    return
+  }
+  lastConnectTime = now
+  // 校验图片 id
   const pictureId = props.picture?.id
   if (!pictureId || !visible.value) {
     return
   }
   // 防止之前的连接未释放
-  if (websocket) {
+  if (websocket && websocket.readyState !== WebSocket.CLOSED) {
     websocket.disconnect()
   }
   // 创建 WebSocket 实例
   websocket = new PictureEditWebSocket(pictureId)
   // 建立 WebSocket 连接
   websocket.connect()
+  // 如果连接失败，3秒后重试
+  websocket.onerror = () => {
+    console.error('WebSocket 连接失败，3秒后重试')
+    setTimeout(() => {
+      initWebsocket()
+    }, 3000)
+  }
 
   // 监听通知消息
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.INFO, (msg) => {
