@@ -185,14 +185,6 @@ const initWebsocket = () => {
   // 建立 WebSocket 连接
   websocket.connect()
 
-  websocket.on('open', (msg) => {
-    console.log('连接成功', msg)
-    // 同步初始编辑的用户
-    if (msg.user) {
-      editingUser.value = msg.user
-    }
-  })
-
   // 监听通知消息
   websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.INFO, (msg) => {
     console.log('收到通知消息：', msg)
@@ -210,6 +202,14 @@ const initWebsocket = () => {
     console.log('收到进入编辑状态消息：', msg)
     message.info(msg.message)
     editingUser.value = msg.user
+  })
+
+  // 监听初始化图片状态消息
+  websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.INIT_STATE, (msg) => {
+    console.log('收到初始化图片状态：', msg)
+    if (msg.user) {
+      editingUser.value = msg.user
+    }
   })
 
   // 监听编辑操作消息

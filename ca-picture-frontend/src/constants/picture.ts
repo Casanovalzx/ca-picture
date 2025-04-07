@@ -32,6 +32,7 @@ export const PIC_REVIEW_STATUS_OPTIONS = Object.keys(PIC_REVIEW_STATUS_MAP).map(
 export const PICTURE_EDIT_MESSAGE_TYPE_ENUM = {
   INFO: 'INFO',
   ERROR: 'ERROR',
+  INIT_STATE: 'INIT_STATE',
   ENTER_EDIT: 'ENTER_EDIT',
   EXIT_EDIT: 'EXIT_EDIT',
   EDIT_ACTION: 'EDIT_ACTION',
@@ -43,6 +44,7 @@ export const PICTURE_EDIT_MESSAGE_TYPE_ENUM = {
 export const PICTURE_EDIT_MESSAGE_TYPE_MAP = {
   INFO: '发送通知',
   ERROR: '发送错误',
+  INIT_STATE: '初始化图片状态',
   ENTER_EDIT: '进入编辑状态',
   EXIT_EDIT: '退出编辑状态',
   EDIT_ACTION: '执行编辑操作',
