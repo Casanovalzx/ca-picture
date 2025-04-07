@@ -1,5 +1,6 @@
 # Personal config
 src/request.ts
+src/utils/pictureEditWebSocket.ts
 
 # Logs
 logs
