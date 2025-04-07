@@ -705,6 +705,12 @@ declare namespace API {
     userPassword?: string
   }
 
+  type UserUpdatePasswordRequest = {
+    checkPassword?: string
+    userId?: number
+    userPassword?: string
+  }
+
   type UserUpdateRequest = {
     id?: number
     userAvatar?: string
