@@ -1,6 +1,5 @@
 package com.ca.capicturebackend.manager.websocket.disruptor;
 
-import cn.hutool.json.JSONUtil;
 import com.ca.capicturebackend.manager.websocket.PictureEditHandler;
 import com.ca.capicturebackend.manager.websocket.model.PictureEditMessageTypeEnum;
 import com.ca.capicturebackend.manager.websocket.model.PictureEditRequestMessage;
@@ -55,7 +54,8 @@ public class PictureEditEventWorkHandler implements WorkHandler<PictureEditEvent
                 pictureEditResponseMessage.setType(PictureEditMessageTypeEnum.ERROR.getValue());
                 pictureEditResponseMessage.setMessage("消息类型错误");
                 pictureEditResponseMessage.setUser(userService.getUserVO(user));
-                session.sendMessage(new TextMessage(JSONUtil.toJsonStr(pictureEditResponseMessage)));
+                String textMessage = pictureEditHandler.getJsonString(pictureEditResponseMessage);
+                session.sendMessage(new TextMessage(textMessage));
         }
     }
 }
