@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class PictureEditResponseMessage {
 
     /**
-     * 消息类型，例如 "INFO", "ERROR", "INIT_STATE", "ENTER_EDIT", "EXIT_EDIT", "EDIT_ACTION"
+     * 消息类型，例如 "INFO", "ERROR", "INIT_STATE", "ENTER_EDIT", "EXIT_EDIT", "EDIT_ACTION", "SAVE_EDIT""
      */
     private String type;
 

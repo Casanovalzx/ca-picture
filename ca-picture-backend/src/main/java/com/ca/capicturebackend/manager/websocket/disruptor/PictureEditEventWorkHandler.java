@@ -49,6 +49,9 @@ public class PictureEditEventWorkHandler implements WorkHandler<PictureEditEvent
             case EXIT_EDIT:
                 pictureEditHandler.handleExitEditMessage(pictureEditRequestMessage, session, user, pictureId);
                 break;
+            case SAVE_EDIT:
+                pictureEditHandler.handleSaveEditMessage(pictureEditRequestMessage, session, user, pictureId);
+                break;
             default:
                 PictureEditResponseMessage pictureEditResponseMessage = new PictureEditResponseMessage();
                 pictureEditResponseMessage.setType(PictureEditMessageTypeEnum.ERROR.getValue());

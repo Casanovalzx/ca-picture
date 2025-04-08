@@ -185,6 +185,33 @@ public class PictureEditHandler extends TextWebSocketHandler {
     }
 
     /**
+     * 保存编辑
+     *
+     * @param pictureEditRequestMessage
+     * @param session
+     * @param user
+     * @param pictureId
+     */
+    public void handleSaveEditMessage(PictureEditRequestMessage pictureEditRequestMessage, WebSocketSession session, User user, Long pictureId) throws IOException {
+        // 获取正在编辑的用户
+        Long editingUserId = pictureEditingUsers.get(pictureId);
+        // 如果是当前的编辑者
+        if (editingUserId != null && editingUserId.equals(user.getId())) {
+            // 移除用户正在编辑该图片
+            pictureEditingUsers.remove(pictureId);
+            // 构造响应，发送保存编辑的消息通知
+            PictureEditResponseMessage pictureEditResponseMessage = new PictureEditResponseMessage();
+            pictureEditResponseMessage.setType(PictureEditMessageTypeEnum.SAVE_EDIT.getValue());
+            String message = String.format("用户 %s 保存编辑", user.getUserName());
+            pictureEditResponseMessage.setMessage(message);
+            pictureEditResponseMessage.setUser(userService.getUserVO(user));
+            // 广播除当前编辑用户外的其他用户
+            broadcastToPicture(pictureId, pictureEditResponseMessage, session);
+        }
+    }
+
+
+    /**
      * 关闭连接
      *
      * @param session

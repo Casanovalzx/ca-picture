@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class PictureEditRequestMessage {
 
     /**
-     * 消息类型，例如 "ENTER_EDIT", "EXIT_EDIT", "EDIT_ACTION"
+     * 消息类型，例如 "ENTER_EDIT", "EXIT_EDIT", "EDIT_ACTION", "SAVE_EDIT"
      */
     private String type;
 
