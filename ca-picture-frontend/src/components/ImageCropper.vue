@@ -105,6 +105,8 @@ const handleConfirm = () => {
     const file = new File([blob], fileName, { type: blob.type })
     // 上传图片
     handleUpload({ file })
+    // 避免其他客户端在上传图片完成前被刷新
+    saveEdit()
   })
 }
 
@@ -169,37 +171,27 @@ const canEdit = computed(() => {
 })
 
 let websocket: PictureEditWebSocket | null
-let lastConnectTime = 0
-const CONNECT_INTERVAL = 1000 // 1秒
 
-// 初始化 WebSocket 连接，绑定事件
 const initWebsocket = () => {
-  // 节流，避免连接过于频繁
-  const now = Date.now()
-  if (now - lastConnectTime < CONNECT_INTERVAL) {
-    console.warn('连接过快，已忽略')
-    return
-  }
-  lastConnectTime = now
-  // 校验图片 id
+  // 校验图片 ID
   const pictureId = props.picture?.id
   if (!pictureId || !visible.value) {
     return
   }
-  // 防止之前的连接未释放
+
+  // 断开旧连接
   if (websocket && websocket.readyState !== WebSocket.CLOSED) {
     websocket.disconnect()
   }
-  // 创建 WebSocket 实例
+
+  // 新建连接
   websocket = new PictureEditWebSocket(pictureId)
-  // 建立 WebSocket 连接
   websocket.connect()
-  // 如果连接失败，3秒后重试
+
+  // 失败时重试
   websocket.onerror = () => {
     console.error('WebSocket 连接失败，3秒后重试')
-    setTimeout(() => {
-      initWebsocket()
-    }, 3000)
+    setTimeout(() => initWebsocket(), 3000)
   }
 
   // 监听通知消息
@@ -255,6 +247,17 @@ const initWebsocket = () => {
     message.info(msg.message)
     editingUser.value = undefined
   })
+
+  // 监听保存图片编辑消息
+  websocket.on(PICTURE_EDIT_MESSAGE_TYPE_ENUM.SAVE_EDIT, (msg) => {
+    console.log('收到保存图片编辑消息：', msg)
+    message.info(msg.message + '，将在 2 秒内刷新')
+    // 延迟 2 秒刷新页面
+    setTimeout(() => {
+      editingUser.value = undefined
+      window.location.reload()
+    }, 2000)
+  })
 }
 
 watchEffect(() => {
@@ -309,6 +312,16 @@ const editAction = (action: string) => {
     websocket.sendMessage({
       type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.EDIT_ACTION,
       editAction: action,
+    })
+  }
+}
+
+// 保存图片操作
+const saveEdit = () => {
+  if(websocket) {
+    // 发送退出保存图片编辑的消息
+    websocket.sendMessage({
+      type: PICTURE_EDIT_MESSAGE_TYPE_ENUM.SAVE_EDIT,
     })
   }
 }
